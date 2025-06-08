@@ -1,0 +1,1264 @@
+! Davis AirLink Daten 
+! 2021-02-17 Werner Krenn
+
+var url = "http://192.168.0.159/v1/current_conditions"; !IP-Adresse im lokalen Netz der DAVIS Airlink
+string cuxAirName='CUxD.CUX9001001:1';    !Cux Universal Wrapper Device (90)
+string cuxCMDName='CUxD.CUX2801001:1';    !Cux Execute Device
+boolean useLOGIT=true;                    !Werte auch Grafikdarstellung 
+boolean info=true;                        !Allgemeine Info anzeigen
+boolean infow=true;                       !Werte auch anzeigen
+integer tzv=2;                            !kleiner dieser Zahl werden die min/max Werte zurückgesetzt
+
+dom.GetObject(cuxCMDName#'.CMD_SETS').State("wget -q -O - '"#url#"' &");
+dom.GetObject(cuxCMDName#'.CMD_QUERY_RET').State(1);   
+string air_json = dom.GetObject(cuxCMDName#'.CMD_RETS').State();
+integer slenght = air_json.Length();
+WriteLine(slenght);
+!Ausgabe der RAW JSON Nachricht
+WriteLine(air_json);
+
+integer position = air_json.Find("error");
+string error = air_json.Substr((position+8), 4);
+if (info == true) {WriteLine(error);}
+
+object svObject;
+object svObjectlist;
+
+integer thx = (system.Date("%H")).ToInteger();
+integer tmx = (system.Date("%M")).ToInteger();
+integer tz = (thx*60) + tmx;
+
+var DT_STATE = system.Date("%H:%M:%S");
+var AirDateTime = (DT_STATE);
+svObject = dom.GetObject("AirDateTime");
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name("AirDateTime");   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Air - Zeit');
+	    svObject.ValueUnit("");
+	    svObject.State(AirDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	 }
+else {svObject.State(AirDateTime);}
+
+
+string svTemperatur='AIR Temperatur';
+string svTemperaturMin='AIR Temperatur min';
+string svTemperaturMinZeit='AIR Temperatur minZeit';
+string svTemperaturMax='AIR Temperatur max';
+string svTemperaturMaxZeit='AIR Temperatur maxZeit';
+
+string svLuftfeuchte='AIR Luftfeuchte';
+string svLuftfeuchteMin='AIR Luftfeuchte min';
+string svLuftfeuchteMinZeit='AIR Luftfeuchte minZeit';
+string svLuftfeuchteMax='AIR Luftfeuchte max';
+string svLuftfeuchteMaxZeit='AIR Luftfeuchte maxZeit';
+
+string svTaupunkt='AIR Taupunkt';
+string svWetBulb='AIR FeuchtKugel';
+string svHeatIndex='AIR HeatIndex';
+
+string svPM_1='AIR PM_1';
+string svPM_1Min='AIR PM_1 min';
+string svPM_1MinZeit='AIR PM_1 minZeit';
+string svPM_1Max='AIR PM_1 max';
+string svPM_1MaxZeit='AIR PM_1 maxZeit';
+
+string svPM_2p5='AIR PM_2p5';
+string svPM_2p5Min='AIR PM_2p5 min';
+string svPM_2p5MinZeit='AIR PM_2p5 minZeit';
+string svPM_2p5Max='AIR PM_2p5 max';
+string svPM_2p5MaxZeit='AIR PM_2p5 maxZeit';
+
+string svPM_10='AIR PM_10';
+string svPM_10Min='AIR PM_10 min';
+string svPM_10MinZeit='AIR PM_10 minZeit';
+string svPM_10Max='AIR PM_10 max';
+string svPM_10MaxZeit='AIR PM_10 maxZeit';
+
+string svPM_2p5_last_1h='AIR PM_2p5 letzte 1h';
+string svPM_2p5_last_3h='AIR PM_2p5 letzte 3h';
+string svPM_2p5_last_24h='AIR PM_2p5 letzte 24h';
+string svPM_2p5_nowcast='AIR PM_2p5 nowcast';
+
+string svPM_10_last_1h='AIR PM_10 letzte 1h';
+string svPM_10_last_3h='AIR PM_10 letzte 3h';
+string svPM_10_last_24h='AIR PM_10 letzte 24h';
+string svPM_10_nowcast='AIR PM_10 nowcast';
+
+string svPM_data_last_1h='AIR PM_PCT Daten letzte 1h';
+string svPM_data_last_3h='AIR PM_PCT Daten letzte 3h';
+string svPM_data_last_24h='AIR PM_PCT Daten letzte 24h';
+string svPM_data_nowcast='AIR PM_PCT Daten nowcast';
+
+if (error <> "null") 
+{
+if (tz < tzv) {
+  svObject = dom.GetObject(svTemperaturMin);
+  svObject.State(svObject.ValueMax());
+  svObject = dom.GetObject(svTemperaturMinZeit);
+  svObject.State(" ");
+
+  svObject = dom.GetObject(svTemperaturMax);
+  svObject.State(svObject.ValueMin());
+  svObject = dom.GetObject(svTemperaturMaxZeit);
+  svObject.State(" ");
+
+  svObject = dom.GetObject(svLuftfeuchteMin);
+  svObject.State(svObject.ValueMax());
+  svObject = dom.GetObject(svLuftfeuchteMinZeit);
+  svObject.State(" ");
+
+  svObject = dom.GetObject(svLuftfeuchteMax);
+  svObject.State(svObject.ValueMin());
+  svObject = dom.GetObject(svLuftfeuchteMaxZeit);
+  svObject.State(" ");  
+  
+  svObject = dom.GetObject(svPM_1Min);
+  svObject.State(svObject.ValueMax());
+  svObject = dom.GetObject(svPM_1MinZeit);
+  svObject.State(" ");
+
+  svObject = dom.GetObject(svPM_1Max);
+  svObject.State(svObject.ValueMin());
+  svObject = dom.GetObject(svPM_1MaxZeit);
+  svObject.State(" ");    
+
+  svObject = dom.GetObject(svPM_2p5Min);
+  svObject.State(svObject.ValueMax());
+  svObject = dom.GetObject(svPM_2p5MinZeit);
+  svObject.State(" ");
+
+  svObject = dom.GetObject(svPM_2p5Max);
+  svObject.State(svObject.ValueMin());
+  svObject = dom.GetObject(svPM_2p5MaxZeit);
+  svObject.State(" ");    
+  
+  svObject = dom.GetObject(svPM_10Min);
+  svObject.State(svObject.ValueMax());
+  svObject = dom.GetObject(svPM_10MinZeit);
+  svObject.State(" ");
+
+  svObject = dom.GetObject(svPM_10Max);
+  svObject.State(svObject.ValueMin());
+  svObject = dom.GetObject(svPM_10MaxZeit);
+  svObject.State(" ");    
+}
+  
+  quit;
+}
+
+
+
+!data_structure_type 5 oder 6 ?
+integer data_structure_type_position = air_json.Find("data_structure_type");
+integer data_structure_type_value = air_json.Substr((data_structure_type_position+22), 1).ToInteger();
+
+
+if (svTemperatur)
+{
+	svObject = dom.GetObject(svTemperatur);
+  integer position = air_json.Find("temp");
+  string test = air_json.Substr((position+6), 5);
+  if (test <> "null,")
+  {
+  real xxx = test.ToFloat();
+
+  real temp_value = (0.5555555555555556 *  (xxx - 32)).ToString(1);
+  if (infow == true) {WriteLine("Temperatur: " # temp_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svTemperatur);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - Temperatur");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-40);
+	    svObject.ValueMax(70);
+	    svObject.State(temp_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(temp_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svTemperatur#';'#temp_value);}
+
+
+ if(svTemperaturMin)
+ {
+   svObject = dom.GetObject(svTemperaturMin);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svTemperaturMin);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - Temperatur Min");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-40);
+	    svObject.ValueMax(70);
+	    svObject.State(temp_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMax());}
+    if ((temp_value.ToFloat()) < svObject.Variable()){
+	svObject.State(temp_value);
+  if(svTemperaturMinZeit)
+	{
+  svObject = dom.GetObject(svTemperaturMinZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svTemperaturMinZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Air - Temperatur MinZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(AirDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(AirDateTime);
+	          }
+    }
+  }
+  }
+  }
+ 
+ if(svTemperaturMax)
+ {
+   svObject = dom.GetObject(svTemperaturMax);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svTemperaturMax);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - Temperatur Max");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-40);
+	    svObject.ValueMax(70);
+	    svObject.State(temp_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMin());}
+    if ((temp_value.ToFloat()) > svObject.Variable()){
+	svObject.State(temp_value);
+  if(svTemperaturMaxZeit)
+	{
+  svObject = dom.GetObject(svTemperaturMaxZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svTemperaturMaxZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Air - Temperatur MaxZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(AirDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(AirDateTime);
+	          }
+    }
+  }
+  }
+ }
+  }
+if (info == true) {WriteLine("Ende Temperatur");}  
+}	
+
+if(svLuftfeuchte)
+{
+	svObject = dom.GetObject(svLuftfeuchte);
+  integer position = air_json.Find("hum");
+  string test = air_json.Substr((position+5), 5);
+  if (test <> "null,")
+  {
+  real hum_value = air_json.Substr((position+5), 5).ToString();
+  if (infow == true) {WriteLine("Luftfeuchtigkeit: " # hum_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svLuftfeuchte);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - Luftfeuchte");
+	    svObject.ValueUnit("%");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(100);
+	    svObject.State(hum_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(hum_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svLuftfeuchte#';'#hum_value);}
+
+
+ if(svLuftfeuchteMin)
+ {
+   svObject = dom.GetObject(svLuftfeuchteMin);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svLuftfeuchteMin);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - Luftfeuchte Min");
+	    svObject.ValueUnit("%");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(100);
+	    svObject.State(hum_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMax());}
+    if ((hum_value.ToFloat()) < svObject.Variable()){
+	svObject.State(hum_value);
+  if(svLuftfeuchteMinZeit)
+	{
+  svObject = dom.GetObject(svLuftfeuchteMinZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svLuftfeuchteMinZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Air - Luftfeuchte MinZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(AirDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(AirDateTime);
+	          }
+    }
+  }
+  }
+  }
+ 
+ if(svLuftfeuchteMax)
+ {
+   svObject = dom.GetObject(svLuftfeuchteMax);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svLuftfeuchteMax);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - Luftfeuchte Max");
+	    svObject.ValueUnit("%");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(100);
+	    svObject.State(hum_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMin());}
+    if ((hum_value.ToFloat()) > svObject.Variable()){
+	svObject.State(hum_value);
+  if(svLuftfeuchteMaxZeit)
+	{
+  svObject = dom.GetObject(svLuftfeuchteMaxZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svLuftfeuchteMaxZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Air - Luftfeuchte MaxZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(AirDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(AirDateTime);
+	          }
+    }
+  }
+  }
+ }
+  }
+if (info == true) {WriteLine("Ende Luftfeuchte");}  
+}	
+
+if (cuxAirName) {
+if (svTemperatur) {dom.GetObject(cuxAirName#'.SET_TEMPERATURE').State(temp_value);}
+if (svLuftfeuchte) {dom.GetObject(cuxAirName#'.SET_HUMIDITY').State(hum_value);}
+}
+
+if(svTaupunkt)
+{
+	svObject = dom.GetObject(svTaupunkt);
+integer position = air_json.Find("dew_point");
+real xxx = air_json.Substr((position+11), 5).ToFloat();
+real dew_point_value =  (0.5555555555555556 *  (xxx - 32)).ToString(1);
+if (infow == true) {WriteLine("Taupunkt: " # dew_point_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svTaupunkt);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - Taupunkt");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-60);
+	    svObject.ValueMax(70);
+	    svObject.State(dew_point_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(dew_point_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svTaupunkt#';'#dew_point_value);}
+ if (info == true) {WriteLine("Ende Taupunkt");}
+}
+
+if(svWetBulb)
+{
+	svObject = dom.GetObject(svWetBulb);
+integer position = air_json.Find("wet_bulb");
+real xxx =  air_json.Substr((position+10), 5).ToFloat();
+real wet_bulb_value = (0.5555555555555556 *  (xxx - 32)).ToString(1);
+if (infow == true) {WriteLine("Wet_bulb: "#wet_bulb_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWetBulb);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - Feuchtkugel");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-60);
+	    svObject.ValueMax(70);
+	    svObject.State(wet_bulb_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(wet_bulb_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svWetBulb#';'#wet_bulb_value);}
+ if (info == true) {WriteLine("Ende WetBulb");}
+}
+
+if(svHeatIndex)
+{
+	svObject = dom.GetObject(svHeatIndex);
+integer position = air_json.Find("heat_index");
+real xxx =  air_json.Substr((position+12), 5).ToFloat();
+real heat_index_value = (0.5555555555555556 *  (xxx - 32)).ToString(1);
+if (infow == true) {WriteLine("Heat_index: "#heat_index_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svHeatIndex);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - HeatIndex");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-60);
+	    svObject.ValueMax(70);
+	    svObject.State(heat_index_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(heat_index_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svHeatIndex#';'#heat_index_value);}
+ if (info == true) {WriteLine("Ende HeatIndex");}
+}
+
+if(svPM_1)
+{
+	svObject = dom.GetObject(svPM_1);
+  string test = air_json.StrValueByIndex(",", 13);
+  real pm_1_value = test.Substr(8, 6).ToFloat().ToString(2);
+  if (infow == true) {WriteLine("pm_1_value: " # pm_1_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_1);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PM_1");
+	    svObject.ValueUnit("µg/m³");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(5000);
+	    svObject.State(pm_1_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(pm_1_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svPM_1#';'#pm_1_value);}
+
+
+ if(svPM_1Min)
+ {
+   svObject = dom.GetObject(svPM_1Min);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_1Min);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PM_1 Min");
+	    svObject.ValueUnit("µg/m³");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(5000);
+	    svObject.State(pm_1_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMax());
+                  if (svPM_1MinZeit) {dom.GetObject(svPM_1MinZeit).State("00:00:00");}}
+    if ((pm_1_value.ToFloat()) < svObject.Variable()){
+	svObject.State(pm_1_value);
+  if(svPM_1MinZeit)
+	{
+  svObject = dom.GetObject(svPM_1MinZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_1MinZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Air - PM_1 MinZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(AirDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(AirDateTime);
+	          }
+    }
+  }
+  }
+  }
+ 
+ if(svPM_1Max)
+ {
+   svObject = dom.GetObject(svPM_1Max);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_1Max);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PM_1 Max");
+	    svObject.ValueUnit("µg/m³");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(5000);
+	    svObject.State(pm_1_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMin());
+                  if (svPM_1MaxZeit) {dom.GetObject(svPM_1MaxZeit).State("00:00:00");}}
+    if ((pm_1_value.ToFloat()) > svObject.Variable()){
+	svObject.State(pm_1_value);
+  if(svPM_1MaxZeit)
+	{
+  svObject = dom.GetObject(svPM_1MaxZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_1MaxZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Air - PM_1 MaxZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(AirDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(AirDateTime);
+	          }
+    }
+  }
+  }
+ }
+if (info == true) {WriteLine("Ende PM_1");}
+}	
+
+if(svPM_2p5)
+{
+	svObject = dom.GetObject(svPM_2p5);
+  string test = air_json.StrValueByIndex(",", 14);
+	real pm_2p5_value = test.Substr(10, 6).ToFloat().ToString(2);
+  if (infow == true) {WriteLine("PM_2p5: " # pm_2p5_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_2p5);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PM_2p5");
+	    svObject.ValueUnit("µg/m³");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(5000);
+	    svObject.State(pm_2p5_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(pm_2p5_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svPM_2p5#';'#pm_2p5_value);}
+
+
+ if(svPM_2p5Min)
+ {
+   svObject = dom.GetObject(svPM_2p5Min);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_2p5Min);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PM_2p5 Min");
+	    svObject.ValueUnit("µg/m³");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(5000);
+	    svObject.State(pm_2p5_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMax());
+                  if (svPM_2p5MinZeit) {dom.GetObject(svPM_2p5MinZeit).State("00:00:00");}}
+    if ((pm_2p5_value.ToFloat()) < svObject.Variable()){
+	svObject.State(pm_2p5_value);
+  if(svPM_2p5MinZeit)
+	{
+  svObject = dom.GetObject(svPM_2p5MinZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_2p5MinZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Air - PM_2p5 MinZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(AirDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(AirDateTime);
+	          }
+    }
+  }
+  }
+  }
+ 
+ if(svPM_2p5Max)
+ {
+   svObject = dom.GetObject(svPM_2p5Max);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_2p5Max);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PM_2p5 Max");
+	    svObject.ValueUnit("µg/m³");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(5000);
+	    svObject.State(pm_2p5_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMin());
+                  if (svPM_2p5MaxZeit) {dom.GetObject(svPM_2p5MaxZeit).State("00:00:00");}}
+    if ((pm_2p5_value.ToFloat()) > svObject.Variable()){
+	svObject.State(pm_2p5_value);
+  if(svPM_2p5MaxZeit)
+	{
+  svObject = dom.GetObject(svPM_2p5MaxZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_2p5MaxZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Air - PM_2p5 MaxZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(AirDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(AirDateTime);
+	          }
+    }
+  }
+  }
+ }
+if (info == true) {WriteLine("Ende PM_2p5");}
+}	
+
+if(svPM_10)
+{
+	svObject = dom.GetObject(svPM_10);
+  string test = air_json.StrValueByIndex(",", 19);
+  if (data_structure_type_value==5)
+	{
+	real pm_10_value = test.Substr(12, 6).ToFloat().ToString(2);
+	}
+	else
+	{
+	real pm_10_value = test.Substr(10, 6).ToFloat().ToString(2);
+	}
+  if (infow == true) {WriteLine("PM_10: " # pm_10_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_10);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PM_10");
+	    svObject.ValueUnit("µg/m³");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(5000);
+	    svObject.State(pm_10_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(pm_10_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svPM_10#';'#pm_10_value);}
+
+
+ if(svPM_10Min)
+ {
+   svObject = dom.GetObject(svPM_10Min);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_10Min);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PM_10 Min");
+	    svObject.ValueUnit("µg/m³");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(5000);
+	    svObject.State(pm_10_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMax());
+                  if (svPM_10MinZeit) {dom.GetObject(svPM_10MinZeit).State("00:00:00");}}
+    if ((pm_10_value.ToFloat()) < svObject.Variable()){
+	svObject.State(pm_10_value);
+  if(svPM_10MinZeit)
+	{
+  svObject = dom.GetObject(svPM_10MinZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_10MinZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Air - PM_10 MinZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(AirDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(AirDateTime);
+	          }
+    }
+  }
+  }
+  }
+ 
+ if(svPM_10Max)
+ {
+   svObject = dom.GetObject(svPM_10Max);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_10Max);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PM_10 Max");
+	    svObject.ValueUnit("µg/m³");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(5000);
+	    svObject.State(pm_10_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMin());
+                  if (svPM_10MaxZeit) {dom.GetObject(svPM_10MaxZeit).State("00:00:00");}}
+    if ((pm_10_value.ToFloat()) > svObject.Variable()){
+	svObject.State(pm_10_value);
+  if(svPM_10MaxZeit)
+	{
+  svObject = dom.GetObject(svPM_10MaxZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_10MaxZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Air - PM_10 MaxZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(AirDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(AirDateTime);
+	          }
+    }
+  }
+  }
+ }
+if (info == true) {WriteLine("Ende PM_10");}
+}	
+
+if(svPM_10_last_1h)
+{
+	svObject = dom.GetObject(svPM_10_last_1h);
+  string test = air_json.StrValueByIndex(",", 20);
+  !WriteLine(test);
+	if (data_structure_type_value==5)
+	{
+	real pm_10_last_1_hour_value = test.Substr(23, 6).ToFloat().ToString(2);
+	}
+	else
+	{
+	real pm_10_last_1_hour_value = test.Substr(21, 6).ToFloat().ToString(2);
+	}
+	if (infow == true) {WriteLine("PM 10 letzte 1h: " # pm_10_last_1_hour_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_10_last_1h);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PM 10 letzte 1h");
+	    svObject.ValueUnit("µg/m³");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(5000);
+	    svObject.State(pm_10_last_1_hour_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(pm_10_last_1_hour_value);
+	}
+ !if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svPM_10_last_1h#';'#pm_10_last_1_hour_value);}
+ if (info == true) {WriteLine("Ende PM 10 letzte 1h");}
+}
+
+
+if(svPM_10_last_3h)
+{
+	svObject = dom.GetObject(svPM_10_last_3h);
+  string test = air_json.StrValueByIndex(",", 21);
+  if (data_structure_type_value==5)
+	{
+	real pm_10_last_3_hour_value = test.Substr(24, 6).ToFloat().ToString(2);
+	}
+	else
+	{
+	real pm_10_last_3_hour_value = test.Substr(22, 6).ToFloat().ToString(2);
+	}
+if (infow == true) {WriteLine("PM 10 letzte 3h: " # pm_10_last_3_hour_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_10_last_3h);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PM 10 letzte 3h");
+	    svObject.ValueUnit("µg/m³");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(5000);
+	    svObject.State(pm_10_last_3_hour_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(pm_10_last_3_hour_value);
+	}
+ if (info == true) {WriteLine("Ende PM 10 letzte 3h");}
+}
+
+if(svPM_10_last_24h)
+{
+	svObject = dom.GetObject(svPM_10_last_24h);
+  string test = air_json.StrValueByIndex(",", 22);
+  if (data_structure_type_value==5)
+	{
+	real pm_10_last_24_hour_value = test.Substr(25, 6).ToFloat().ToString(2);
+	}
+	else
+	{
+	real pm_10_last_24_hour_value = test.Substr(23, 6).ToFloat().ToString(2);
+	}
+if (infow == true) {WriteLine("PM 10 letzte 3h: " # pm_10_last_24_hour_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_10_last_24h);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PM 10 letzte 24h");
+	    svObject.ValueUnit("µg/m³");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(5000);
+	    svObject.State(pm_10_last_24_hour_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(pm_10_last_24_hour_value);
+	}
+ if (info == true) {WriteLine("Ende PM 10 letzte 24h");}
+}
+
+
+if(svPM_10_nowcast)
+{
+	svObject = dom.GetObject(svPM_10_nowcast);         
+  string test = air_json.StrValueByIndex(",", 23);
+  if (data_structure_type_value==5)
+	{
+	real pm_10_nowcast_value = test.Substr(19, 6).ToFloat().ToString(2);
+	}
+	else
+	{
+	real pm_10_nowcast_value = test.Substr(17, 6).ToFloat().ToString(2);
+	}
+if (infow == true) {WriteLine("PM 10 nowcast: " # pm_10_nowcast_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_10_nowcast);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PM 10 nowcast");
+	    svObject.ValueUnit("µg/m³");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(5000);
+	    svObject.State(pm_10_nowcast_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(pm_10_nowcast_value);
+	}
+ if (info == true) {WriteLine("Ende PM 10 nowcast");}
+}
+
+if(svPM_2p5_last_1h)
+{
+	svObject = dom.GetObject(svPM_2p5_last_1h);
+  string test = air_json.StrValueByIndex(",", 15);
+  real pm_2p5_last_1_hour_value = test.Substr(22, 6).ToFloat().ToString(2);
+  if (infow == true) {WriteLine("PM 2p5 letzte 1h: " # pm_2p5_last_1_hour_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_2p5_last_1h);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PM 2p5 letzte 1h");
+	    svObject.ValueUnit("µg/m³");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(5000);
+	    svObject.State(pm_2p5_last_1_hour_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(pm_2p5_last_1_hour_value);
+	}
+!	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svPM_2p5_last_1h#';'#pm_2p5_last_1_hour_value);}
+ if (info == true) {WriteLine("Ende PM 2p5 letzte 1h");}
+}
+
+
+if(svPM_2p5_last_3h)
+{
+	svObject = dom.GetObject(svPM_2p5_last_3h);
+  string test = air_json.StrValueByIndex(",", 16);
+	real pm_2p5_last_3_hour_value = test.Substr(23, 6).ToFloat().ToString(2);
+  if (infow == true) {WriteLine("PM 2p5 letzte 3h: " # pm_2p5_last_3_hour_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_2p5_last_3h);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PM 2p5 letzte 3h");
+	    svObject.ValueUnit("µg/m³");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(5000);
+	    svObject.State(pm_2p5_last_3_hour_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(pm_2p5_last_3_hour_value);
+	}
+ if (info == true) {WriteLine("Ende PM 2p5 letzte 3h");}
+}
+
+if(svPM_2p5_last_24h)
+{
+	svObject = dom.GetObject(svPM_2p5_last_24h);
+  string test = air_json.StrValueByIndex(",", 17);
+	real pm_2p5_last_24_hour_value = test.Substr(24, 6).ToFloat().ToString(2);
+  if (infow == true) {WriteLine("PM 2p5 letzte 24h: " # pm_2p5_last_24_hour_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_2p5_last_24h);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PM 2p5 letzte 24h");
+	    svObject.ValueUnit("µg/m³");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(5000);
+	    svObject.State(pm_2p5_last_24_hour_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(pm_2p5_last_24_hour_value);
+	}
+ if (info == true) {WriteLine("Ende PM 2p5 letzte 24h");}
+}
+
+if(svPM_2p5_nowcast)
+{
+	svObject = dom.GetObject(svPM_2p5_nowcast);
+  string test = air_json.StrValueByIndex(",", 18);
+  !integer position = air_json.Find("pm_2p5_nowcast");
+	real pm_2p5_nowcast_value = test.Substr(18, 6).ToFloat().ToString(2);
+  if (infow == true) {WriteLine("PM 2p5 nowcast: " # pm_2p5_nowcast_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_2p5_nowcast);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PM 2p5 nowcast");
+	    svObject.ValueUnit("µg/m³");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(5000);
+	    svObject.State(pm_2p5_nowcast_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(pm_2p5_nowcast_value);
+	}
+ if (info == true) {WriteLine("Ende PM 2p5 nowcast");}
+}
+
+if(svPM_data_last_1h)
+{
+	svObject = dom.GetObject(svPM_data_last_1h);
+  string test = air_json.StrValueByIndex(",", 25);
+	real pct_pm_data_last_1_hour_value = test.Substr(27, 6).ToFloat();
+  if (infow == true) {WriteLine("PCT PM Daten letzte 1h: " # pct_pm_data_last_1_hour_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_data_last_1h);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PCT PM Daten letzte 1h");
+	    svObject.ValueUnit("%");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(100);
+	    svObject.State(pct_pm_data_last_1_hour_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(pct_pm_data_last_1_hour_value);
+	}
+ if (info == true) {WriteLine("Ende PCT PM Daten letzte 1h");}
+}
+
+
+if(svPM_data_last_3h)
+{
+	svObject = dom.GetObject(svPM_data_last_3h);
+  string test = air_json.StrValueByIndex(",", 26);
+	real pct_pm_data_last_3_hours_value = test.Substr(28, 6).ToFloat();
+  if (infow == true) {WriteLine("PCT PM Daten letzte 3h: " # pct_pm_data_last_3_hours_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_data_last_3h);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PCT PM Daten letzte 3h");
+	    svObject.ValueUnit("%");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(100);
+	    svObject.State(pct_pm_data_last_3_hours_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(pct_pm_data_last_3_hours_value);
+	}
+ if (info == true) {WriteLine("Ende PCT PM Daten letzte 3h");}
+}
+
+if(svPM_data_last_24h)
+{
+	svObject = dom.GetObject(svPM_data_last_24h);
+  string test = air_json.StrValueByIndex(",", 28);
+	real pct_pm_data_last_24_hours_value = test.Substr(29, 4).ToFloat();
+  if (infow == true) {WriteLine("PCT PM Daten letzte 24h: " # pct_pm_data_last_24_hours_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_data_last_24h);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PCT PM Daten letzte 24h");
+	    svObject.ValueUnit("%");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(100);
+	    svObject.State(pct_pm_data_last_24_hours_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(pct_pm_data_last_24_hours_value);
+	}
+ if (info == true) {WriteLine("Ende PCT PM Daten letzte 24h");}
+}
+
+if(svPM_data_nowcast)
+{
+	svObject = dom.GetObject(svPM_data_nowcast);
+  string test = air_json.StrValueByIndex(",", 27);
+	real pct_pm_data_nowcast_value = test.Substr(23, 6).ToFloat();
+  if (infow == true) {WriteLine("PCT PM Daten nowcast: " # pct_pm_data_nowcast_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svPM_data_nowcast);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Air - PCT PM Daten nowcast");
+	    svObject.ValueUnit("%");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(100);
+	    svObject.State(pct_pm_data_nowcast_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(pct_pm_data_nowcast_value);
+	}
+ if (info == true) {WriteLine("Ende PCT PM Daten nowcast");}
+}
+
+if (info == true) {WriteLine("Ende");}

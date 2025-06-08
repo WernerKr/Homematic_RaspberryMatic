@@ -1,0 +1,7 @@
+!var programObj = dom.GetObject("Weatherlink Live");
+!programObj.ProgramExecute();
+dom.GetObject("Weatherlink Live").ProgramExecute();
+
+!var programObj = dom.GetObject("Airlink Daten");
+!programObj.ProgramExecute();
+dom.GetObject("Airlink Daten").ProgramExecute();

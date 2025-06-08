@@ -1,0 +1,2437 @@
+! Davis Weather Link Live Status Importer
+! 1-2021 Erik Groennerud / Werner Krenn
+
+var url = "http://192.168.0.121/v1/current_conditions";   !IP-Adresse im lokalen Netz der Weather Link Live
+string cuxWDSName='CUxD.CUX9002001:1';      !Cux Universal Wrapper Device (90) für Live Innenwerte
+string cuxWetterName='CUxD.CUX9002002:1';   !Cux Universal Wrapper Device (90) für Live Aussenwerte
+string cuxCMDName='CUxD.CUX2801001:1';      !Cux Execute Device
+boolean useLOGIT=true;                      !Werte auch Grafikdarstellung 
+integer regen=0;
+boolean info=true;
+boolean infow=true;
+boolean WRText=true;                        !Windrichtung auch als Text (N,NO ...)
+boolean WRTextUndGrad=true;                 !Bei Windrichtungstext auch die Gradzahl mit zeigen
+integer tzv=2;                              !Zeit min/max Werte Rücksetzen, bei 1,...,59 Minuten muss es 2 sein - anderer Wert notwendig bei Abholungintervalle z.B. 5 Minuten 
+string grad="°";                            ! unbenutzt
+
+dom.GetObject(cuxCMDName#'.CMD_SETS').State("wget -q -O - '"#url#"' &");
+dom.GetObject(cuxCMDName#'.CMD_QUERY_RET').State(1);   
+string wll_json = dom.GetObject(cuxCMDName#'.CMD_RETS').State();
+integer slenght = wll_json.Length();
+
+!Ausgabe der RAW JSON Nachricht
+!WriteLine(wll_json);
+
+integer error_position = wll_json.Find("error");
+string error = wll_json.Substr((error_position+7), 4);
+if (info == true) {WriteLine(error);}
+
+
+object svObject;
+object svObjectlist;
+
+integer thx = (system.Date("%H")).ToInteger();
+integer tmx = (system.Date("%M")).ToInteger();
+integer tz = (thx*60) + tmx;
+
+var DT_STATE = system.Date("%H:%M:%S");
+var WLDateTime = (DT_STATE);
+svObject = dom.GetObject("WLDateTime");
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name("WLDateTime");   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - Zeit');
+	    svObject.ValueUnit("");
+	    svObject.State(WLDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	 }
+else {svObject.State(WLDateTime);}
+
+if (error <> "null") {quit;}
+
+string svBatterieStatus='WL Batterie Status';
+
+string svAussentemperatur='WL Aussentemperatur';
+string svAussentemperaturMin='WL Aussentemperatur min';
+string svAussentemperaturMinZeit='WL Aussentemperatur minZeit';
+string svAussentemperaturMax='WL Aussentemperatur max';
+string svAussentemperaturMaxZeit='WL Aussentemperatur maxZeit';
+
+string svAussenluftfeuchte='WL Aussenluftfeuchte';
+string svAussenluftfeuchteMin='WL Aussenluftfeuchte min';
+string svAussenluftfeuchteMinZeit='WL Aussenluftfeuchte minZeit';
+string svAussenluftfeuchteMax='WL Aussenluftfeuchte max';
+string svAussenluftfeuchteMaxZeit='WL Aussenluftfeuchte maxZeit';
+
+string svInnentemperatur='WL Innentemperatur';
+string svInnentemperaturMin='WL Innentemperatur min';
+string svInnentemperaturMinZeit='WL Innentemperatur minZeit';
+string svInnentemperaturMax='WL Innentemperatur max';
+string svInnentemperaturMaxZeit='WL Innentemperatur maxZeit';
+
+string svInnenluftfeuchte='WL Innenluftfeuchte';
+string svInnenluftfeuchteMin='WL Innenluftfeuchte min';
+string svInnenluftfeuchteMinZeit='WL Innenluftfeuchte minZeit';
+string svInnenluftfeuchteMax='WL Innenluftfeuchte max';
+string svInnenluftfeuchteMaxZeit='WL Innenluftfeuchte maxZeit';
+
+string svLuftdruck='WL Luftdruck';
+string svLuftdruckMin='WL Luftdruck min';
+string svLuftdruckMinZeit='WL Luftdruck minZeit';
+string svLuftdruckMax='WL Luftdruck max';
+string svLuftdruckMaxZeit='WL Luftdruck maxZeit';
+string svLuftdruckTrend='WL Luftdruck Trend';
+
+string svTaupunkt='WL Taupunkt';
+string svWetBulb='WL FeuchtKugel';
+string svHeatIndex='WL HeatIndex';
+string svWindchill='WL Windchill';
+string svTHW_Index='WL THW_Index';
+string svTHSW_Index='WL THSW_Index';
+
+string svSolar='WL Solar';
+string svSolarMax='WL Solar max';
+string svSolarMaxZeit='WL Solar maxZeit';
+
+string svUV='WL UV';
+string svUVMax='WL UV max';
+string svUVMaxZeit='WL UV maxZeit';
+
+string svWLRegenAussen='WL Aussenregen';
+string svWLRegen60min='WL Regen letzte 60min';
+string svWLRegen24h='WL Regen letzte 24h';
+string svWLRegenRate='WL Regen Rate letzte';
+string svWLRegenTag='WL Regen Tag';
+string svWLRegenMonat='WL Regen Monat';
+string svWLRegenJahr='WL Regen Jahr';
+string svWindSpeed_2min='WL Windgeschwindigkeit';
+string svWindDir_2min='WL Windrichtung';
+string svWindSpeedHi_2min='WL Windboen';
+string svWindDirHi_2min='WL Windboenrichtung';
+
+string svWindSpeed_10min='WL Windgeschwindigkeit 10min';
+string svWindDir_10min='WL Windrichtung 10min';
+string svWindSpeedHi_10min='WL Windboen 10min';
+string svWindDirHi_10min='WL Windboenrichtung 10min';
+
+string svWindSpeed_Max='WL Windboen max';
+string svWindSpeedDir_Max='WL Windboen max Richtung';
+string svWindSpeed_MaxZeit='WL Windboen maxZeit';
+
+if (WRText)
+{
+string svWindDirT_2min='WL WindrichtungText';
+string svWindDirTHi_2min='WL WindboenrichtungText';
+string svWindDirT_10min='WL WindrichtungText 10min';
+string svWindDirTHi_10min='WL WindboenrichtungText 10min';
+string svWindSpeedDirT_Max='WL Windboen max RichtungText';
+}
+
+
+string svBodenTemperatur1='WL Bodentemperatur 1';
+string svBodenTemperatur2='WL Bodentemperatur 2';
+string svBodenTemperatur3='WL Bodentemperatur 3';
+string svBodenTemperatur4='WL Bodentemperatur 4';
+string svBodenFeuchte1='WL Bodenfeuchte 1';
+string svBodenFeuchte2='WL Bodenfeuchte 2';
+string svBodenFeuchte3='WL Bodenfeuchte 3';
+string svBodenFeuchte4='WL Bodenfeuchte 4';
+string svBlattFeuchte1='WL Blattfeuchte 1';
+string svBlattFeuchte2='WL Blattfeuchte 2';
+string svBlattTemp1='WL BlattTemp 1';
+string svBlattTemp2='WL BlattTemp 2';
+
+!ist eine Boden- und eine Blatt-Station vorhanden?
+boolean BodenUndBlatt=true;
+integer BodenTemp1Index=146;
+integer BodenTemp2Index=147;
+integer BodenTemp3Index=148;
+integer BodenTemp4Index=149;
+integer BodenFeuchte1Index=150;
+integer BodenFeuchte2Index=151;
+integer BodenFeuchte3Index=152;
+integer BodenFeuchte4Index=153;
+integer BlattFeuchte1Index=139;
+integer BlattFeuchte2Index=140;
+integer BlattTemp1Index=131;
+integer BlattTemp2Index=132;
+
+integer BlattFeuchte1Index=139;
+
+if(svBatterieStatus)
+{
+svObject = dom.GetObject(svBatterieStatus);
+string battery_status = "Battery leer";  
+integer trans_battery_flag_position = wll_json.Find("trans_battery_flag");
+real trans_battery_flag_value = wll_json.Substr((trans_battery_flag_position+20), 1);
+if (trans_battery_flag_value==0) {battery_status = "OK";}
+
+!if (infow == true) {WriteLine("Battery: " #  trans_battery_flag_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svBatterieStatus);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - Batterie Status');
+	    svObject.ValueUnit("");
+	    svObject.State(battery_status);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	    } else 
+	    {
+	    svObject.State(battery_status);
+	    }
+if (info == true) {WriteLine("Ende Batterie Status");}  
+}
+
+if(svAussentemperatur)
+{
+	svObject = dom.GetObject(svAussentemperatur);
+  integer temp_position = wll_json.Find("temp");
+  real xxx = wll_json.Substr((temp_position+6), 5).ToFloat();
+  real temp_value = (0.5555555555555556 *  (xxx - 32)).ToString(1);
+  if (infow == true) {WriteLine("Temperatur: " # temp_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svAussentemperatur);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Aussentemperatur");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-40);
+	    svObject.ValueMax(70);
+	    svObject.State(temp_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(temp_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svAussentemperatur#';'#temp_value);}
+
+
+ if(svAussentemperaturMin)
+ {
+   svObject = dom.GetObject(svAussentemperaturMin);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svAussentemperaturMin);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Aussentemperatur Min");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-40);
+	    svObject.ValueMax(70);
+	    svObject.State(temp_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMax());}
+    if ((temp_value.ToFloat()) < svObject.Variable()){
+	svObject.State(temp_value);
+  if(svAussentemperaturMinZeit)
+	{
+  svObject = dom.GetObject(svAussentemperaturMinZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svAussentemperaturMinZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - Aussentemperatur MinZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(WLDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(WLDateTime);
+	          }
+    }
+  }
+  }
+  }
+ 
+ if(svAussentemperaturMax)
+ {
+   svObject = dom.GetObject(svAussentemperaturMax);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svAussentemperaturMax);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Aussentemperatur Max");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-40);
+	    svObject.ValueMax(70);
+	    svObject.State(temp_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMin());}
+    if ((temp_value.ToFloat()) > svObject.Variable()){
+	svObject.State(temp_value);
+  if(svAussentemperaturMaxZeit)
+	{
+  svObject = dom.GetObject(svAussentemperaturMaxZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svAussentemperaturMaxZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - Aussentemperatur MaxZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(WLDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(WLDateTime);
+	          }
+    }
+  }
+  }
+ }
+if (info == true) {WriteLine("Ende Aussentemperatur");}  
+}	
+
+if(svAussenluftfeuchte)
+{
+	svObject = dom.GetObject(svAussenluftfeuchte);
+  integer hum_position = wll_json.Find("hum");
+  real hum_value = wll_json.Substr((hum_position+5), 4).ToString();
+  if (infow == true) {WriteLine("Luftfeuchtigkeit: " # hum_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svAussenluftfeuchte);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Aussenluftfeuchte");
+	    svObject.ValueUnit("%");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(100);
+	    svObject.State(hum_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(hum_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svAussenluftfeuchte#';'#hum_value);}
+
+
+ if(svAussenluftfeuchteMin)
+ {
+   svObject = dom.GetObject(svAussenluftfeuchteMin);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svAussenluftfeuchteMin);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Aussenluftfeuchte Min");
+	    svObject.ValueUnit("%");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(100);
+	    svObject.State(hum_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMax());}
+    if ((hum_value.ToFloat()) < svObject.Variable()){
+	svObject.State(hum_value);
+  if(svAussenluftfeuchteMinZeit)
+	{
+  svObject = dom.GetObject(svAussenluftfeuchteMinZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svAussenluftfeuchteMinZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - Aussenluftfeuchte MinZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(WLDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(WLDateTime);
+	          }
+    }
+  }
+  }
+  }
+ 
+ if(svAussenluftfeuchteMax)
+ {
+   svObject = dom.GetObject(svAussenluftfeuchteMax);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svAussenluftfeuchteMax);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Aussenluftfeuchte Max");
+	    svObject.ValueUnit("%");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(100);
+	    svObject.State(hum_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMin());}
+    if ((hum_value.ToFloat()) > svObject.Variable()){
+	svObject.State(hum_value);
+  if(svAussenluftfeuchteMaxZeit)
+	{
+  svObject = dom.GetObject(svAussenluftfeuchteMaxZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svAussenluftfeuchteMaxZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - Aussenluftfeuchte MaxZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(WLDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(WLDateTime);
+	          }
+    }
+  }
+  }
+ }
+if (info == true) {WriteLine("Ende Aussenluftfeuchte");}  
+}	
+
+if (cuxWetterName) {
+if (svAussentemperatur) {dom.GetObject(cuxWetterName#'.SET_TEMPERATURE').State(temp_value);}
+if (svAussenluftfeuchte) {dom.GetObject(cuxWetterName#'.SET_HUMIDITY').State(hum_value);}
+}
+
+if(svInnentemperatur)
+{
+	svObject = dom.GetObject(svInnentemperatur);
+  integer temp_in_position = wll_json.Find("temp_in");
+  real xxx = wll_json.Substr((temp_in_position+9), 5).ToFloat();
+  real temp_in_value = (0.5555555555555556 *  (xxx - 32)).ToString(1);
+  if (infow == true) {WriteLine("Temperatur in: " # temp_in_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svInnentemperatur);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Innentemperatur");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-40);
+	    svObject.ValueMax(70);
+	    svObject.State(temp_in_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(temp_in_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svInnentemperatur#';'#temp_in_value);}
+
+
+ if(svInnentemperaturMin)
+ {
+   svObject = dom.GetObject(svInnentemperaturMin);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svInnentemperaturMin);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Innentemperatur Min");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-40);
+	    svObject.ValueMax(70);
+	    svObject.State(temp_in_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMax());}
+    if ((temp_in_value.ToFloat()) < svObject.Variable()){
+	svObject.State(temp_in_value);
+  if(svInnentemperaturMinZeit)
+	{
+  svObject = dom.GetObject(svInnentemperaturMinZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svInnentemperaturMinZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - Innentemperatur MinZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(WLDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(WLDateTime);
+	          }
+    }
+  }
+  }
+  }
+ 
+ if(svInnentemperaturMax)
+ {
+   svObject = dom.GetObject(svInnentemperaturMax);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svInnentemperaturMax);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Innentemperatur Max");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-40);
+	    svObject.ValueMax(70);
+	    svObject.State(temp_in_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMin());}
+    if ((temp_in_value.ToFloat()) > svObject.Variable()){
+	svObject.State(temp_in_value);
+  if(svInnentemperaturMaxZeit)
+	{
+  svObject = dom.GetObject(svInnentemperaturMaxZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svInnentemperaturMaxZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - Innentemperatur MaxZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(WLDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(WLDateTime);
+	          }
+    }
+  }
+  }
+ }
+if (info == true) {WriteLine("Ende InnenTemperatur");}
+}	
+
+
+if(svInnenluftfeuchte)
+{
+	svObject = dom.GetObject(svInnenluftfeuchte);
+  integer hum_in_position = wll_json.Find("hum_in");
+  real hum_in_value = wll_json.Substr((hum_in_position+8), 4).ToString();
+  if (infow == true) {WriteLine("Luftfeuchtigkeit in: " # hum_in_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svInnenluftfeuchte);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Innenluftfeuchte");
+	    svObject.ValueUnit("%");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(100);
+	    svObject.State(hum_in_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(hum_in_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svInnenluftfeuchte#';'#hum_in_value);}
+
+
+ if(svInnenluftfeuchteMin)
+ {
+   svObject = dom.GetObject(svInnenluftfeuchteMin);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svInnenluftfeuchteMin);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Innenluftfeuchte Min");
+	    svObject.ValueUnit("%");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(100);
+	    svObject.State(hum_in_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMax());}
+    if ((hum_in_value.ToFloat()) < svObject.Variable()){
+	svObject.State(hum_in_value);
+  if(svInnenluftfeuchteMinZeit)
+	{
+  svObject = dom.GetObject(svInnenluftfeuchteMinZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svInnenluftfeuchteMinZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - Innenluftfeuchte MinZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(WLDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(WLDateTime);
+	          }
+    }
+  }
+  }
+  }
+ 
+ if(svInnenluftfeuchteMax)
+ {
+   svObject = dom.GetObject(svInnenluftfeuchteMax);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svInnenluftfeuchteMax);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Innenluftfeuchte Max");
+	    svObject.ValueUnit("%");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(100);
+	    svObject.State(hum_in_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMin());}
+    if ((hum_in_value.ToFloat()) > svObject.Variable()){
+	svObject.State(hum_in_value);
+  if(svInnenluftfeuchteMaxZeit)
+	{
+  svObject = dom.GetObject(svInnenluftfeuchteMaxZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svInnenluftfeuchteMaxZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - Innenluftfeuchte MaxZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(WLDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(WLDateTime);
+	          }
+    }
+  }
+  }
+ }
+if (info == true) {WriteLine("Ende Innenluftfeuchte");}
+}	
+
+if (cuxWDSName) {
+if (svInnentemperatur) {dom.GetObject(cuxWDSName#'.SET_TEMPERATURE').State(temp_in_value);}
+if (svInnenluftfeuchte) {dom.GetObject(cuxWDSName#'.SET_HUMIDITY').State(hum_in_value);}
+}
+
+
+if(svLuftdruck)
+{
+	svObject = dom.GetObject(svLuftdruck);
+  integer bar_sea_level_position = wll_json.Find("bar_sea_level");
+  real bar_sea_level_value = wll_json.Substr((bar_sea_level_position+15), 6).ToFloat();
+  real bar_sea_level_hpa = (33.86388 * bar_sea_level_value).ToString(1);
+  if (infow == true) {WriteLine("bar_sea_level_hpa: " # bar_sea_level_hpa);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svLuftdruck);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Luftdruck");
+	    svObject.ValueUnit("hPa");
+	    svObject.ValueMin(700);
+	    svObject.ValueMax(1300);
+	    svObject.State(bar_sea_level_hpa);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(bar_sea_level_hpa);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svLuftdruck#';'#bar_sea_level_hpa);}
+
+
+ if(svLuftdruckMin)
+ {
+   svObject = dom.GetObject(svLuftdruckMin);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svLuftdruckMin);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Luftdruck Min");
+	    svObject.ValueUnit("hPa");
+	    svObject.ValueMin(700);
+	    svObject.ValueMax(1300);
+	    svObject.State(bar_sea_level_hpa);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMax());}
+    if ((bar_sea_level_hpa.ToFloat()) < svObject.Variable()){
+	svObject.State(bar_sea_level_hpa);
+  if(svLuftdruckMinZeit)
+	{
+  svObject = dom.GetObject(svLuftdruckMinZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svLuftdruckMinZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - Luftdruck MinZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(WLDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(WLDateTime);
+	          }
+    }
+  }
+  }
+  }
+ 
+ if(svLuftdruckMax)
+ {
+   svObject = dom.GetObject(svLuftdruckMax);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svLuftdruckMax);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Luftdruck Max");
+	    svObject.ValueUnit("hPa");
+	    svObject.ValueMin(700);
+	    svObject.ValueMax(1300);
+	    svObject.State(bar_sea_level_hpa);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMin());}
+    if ((bar_sea_level_hpa.ToFloat()) > svObject.Variable()){
+	svObject.State(bar_sea_level_hpa);
+  if(svLuftdruckMaxZeit)
+	{
+  svObject = dom.GetObject(svLuftdruckMaxZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svLuftdruckMaxZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - Luftdruck MaxZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(WLDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(WLDateTime);
+	          }
+    }
+  }
+  }
+ }
+if (info == true) {WriteLine("Ende Luftdruck");}
+}	
+
+if(svLuftdruckTrend)
+{
+	svObject = dom.GetObject(svLuftdruckTrend);
+  integer bar_trend_position = wll_json.Find("bar_trend");
+  real bar_trend_value = wll_json.Substr((bar_trend_position+11), 6).ToFloat();
+  real bar_trend_hpa = (33.86388 * bar_trend_value).ToString(1);
+  if (infow == true) {WriteLine("bar_trend_hpa: " #  bar_trend_hpa);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svLuftdruckTrend);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Luftdruck Trend");
+	    svObject.ValueUnit("hPa");
+	    svObject.ValueMin(-100);
+	    svObject.ValueMax(100);
+	    svObject.State(bar_trend_hpa);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(bar_trend_hpa);
+	}
+	!if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svLuftdruckTrend#';'#bar_trend_hpa);}
+ if (info == true) {WriteLine("Ende Luftdruck Trend");}
+}
+
+if(svTaupunkt)
+{
+	svObject = dom.GetObject(svTaupunkt);
+integer dew_point_position = wll_json.Find("dew_point");
+real xxx = wll_json.Substr((dew_point_position+11), 5).ToFloat();
+real dew_point_value =  (0.5555555555555556 *  (xxx - 32)).ToString(1);
+if (infow == true) {WriteLine("Taupunkt: " # dew_point_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svTaupunkt);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Taupunkt");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-60);
+	    svObject.ValueMax(70);
+	    svObject.State(dew_point_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(dew_point_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svTaupunkt#';'#dew_point_value);}
+ if (info == true) {WriteLine("Ende Taupunkt");}
+}
+
+if(svWetBulb)
+{
+	svObject = dom.GetObject(svWetBulb);
+integer wet_bulb_position = wll_json.Find("wet_bulb");
+real xxx =  wll_json.Substr((wet_bulb_position+10), 5).ToFloat();
+real wet_bulb_value = (0.5555555555555556 *  (xxx - 32)).ToString(1);
+if (infow == true) {WriteLine("Wet_bulb: "#wet_bulb_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWetBulb);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Feuchtkugel");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-60);
+	    svObject.ValueMax(70);
+	    svObject.State(wet_bulb_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(wet_bulb_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svWetBulb#';'#wet_bulb_value);}
+ if (info == true) {WriteLine("Ende WetBulb");}
+}
+if(svHeatIndex)
+{
+	svObject = dom.GetObject(svHeatIndex);
+integer heat_index_position = wll_json.Find("heat_index");
+real xxx =  wll_json.Substr((heat_index_position+12), 5).ToFloat();
+real heat_index_value = (0.5555555555555556 *  (xxx - 32)).ToString(1);
+if (infow == true) {WriteLine("Heat_index: "#heat_index_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svHeatIndex);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - HeatIndex");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-60);
+	    svObject.ValueMax(70);
+	    svObject.State(heat_index_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(heat_index_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svHeatIndex#';'#heat_index_value);}
+ if (info == true) {WriteLine("Ende HeatIndex");}
+}
+
+if(svWindchill)
+{
+	svObject = dom.GetObject(svWindchill);
+integer wind_chill_position = wll_json.Find("wind_chill");
+real xxx =  wll_json.Substr((wind_chill_position+12), 5).ToFloat();
+real wind_chill_value =  (0.5555555555555556 *  (xxx - 32)).ToString(1);
+if (infow == true) {WriteLine("Wind_chill: "#wind_chill_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWindchill);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Windchill");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-60);
+	    svObject.ValueMax(70);
+	    svObject.State(wind_chill_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(wind_chill_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svWindchill#';'#wind_chill_value);}
+ if (info == true) {WriteLine("Ende Windchill");}
+}
+
+if(svTHW_Index)
+{
+	svObject = dom.GetObject(svTHW_Index);
+integer thw_index_position = wll_json.Find("thw_index");
+real xxx =  wll_json.Substr((thw_index_position+11), 5).ToFloat();
+real thw_index_value =  (0.5555555555555556 *  (xxx - 32)).ToString(1);
+if (infow == true) {WriteLine("THW_index: "#thw_index_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svTHW_Index);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - THW_Index");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-60);
+	    svObject.ValueMax(70);
+	    svObject.State(thw_index_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(thw_index_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svTHW_Index#';'#thw_index_value);}
+ if (info == true) {WriteLine("Ende THW_Index");}
+}
+
+if(svTHSW_Index)
+{
+	svObject = dom.GetObject(svTHSW_Index);
+integer thsw_index_position = wll_json.Find("thsw_index");
+real xxx =   wll_json.Substr((thsw_index_position+12), 5).ToFloat();
+real thsw_index_value =  (0.5555555555555556 *  (xxx - 32)).ToString(1);
+if (infow == true) {WriteLine("THSW_index: "#thsw_index_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svTHSW_Index);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - THSW_Index");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-60);
+	    svObject.ValueMax(70);
+	    svObject.State(thsw_index_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(thsw_index_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svTHSW_Index#';'#thsw_index_value);}
+ if (info == true) {WriteLine("Ende THSW_Index");}
+}
+
+if(svSolar)
+{
+	svObject = dom.GetObject(svSolar);
+integer solar_rad_position = wll_json.Find("solar_rad");
+real solar_rad_value = wll_json.Substr((solar_rad_position+11), 5).ToInteger();
+if (infow == true) {WriteLine("Solar: " # solar_rad_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svSolar);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Solar");
+	    svObject.ValueUnit("W/m²");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(2000);
+	    svObject.State(solar_rad_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(solar_rad_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svSolar#';'#solar_rad_value);}
+  
+  if(svSolarMax)
+  {
+   svObject = dom.GetObject(svSolarMax);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svSolarMax);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Solar Max");
+	    svObject.ValueUnit("W/m²");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(2000);
+	    svObject.State(solar_rad_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {svObject.State(svObject.ValueMin());
+       if (svSolarMaxZeit) {dom.GetObject(svSolarMaxZeit).State("00:00:00");}           
+    }
+    if ((solar_rad_value.ToFloat()) > svObject.Variable()){
+	svObject.State(solar_rad_value);
+  if(svSolarMaxZeit)
+	{
+  svObject = dom.GetObject(svSolarMaxZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svSolarMaxZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - Solar MaxZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(WLDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(WLDateTime);
+	          }
+    }
+   }
+  }
+ }
+if (info == true) {WriteLine("Ende Solar");} 
+}	
+
+if(svUV)
+{
+	svObject = dom.GetObject(svUV);
+  integer uv_index_position = wll_json.Find("uv_index");
+  real uv_index_value = wll_json.Substr((uv_index_position+10), 3).ToString();  
+  if (infow == true) {WriteLine("UV_Index: " # uv_index_value);}  
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svUV);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - UV-Index");
+	    svObject.ValueUnit("index");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(25);
+	    svObject.State(uv_index_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(uv_index_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svUV#';'#uv_index_value);}
+
+ 
+ if(svUVMax)
+ {
+   svObject = dom.GetObject(svUVMax);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svUVMax);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - UV-Index Max");
+	    svObject.ValueUnit("index");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(25);
+	    svObject.State(uv_index_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else 
+	{
+    if (tz < tzv) {
+      svObject.State(svObject.ValueMin()); 
+      if (svUVMaxZeit)  {dom.GetObject(svUVMaxZeit).State("00:00:00");}           
+    }
+    if ((uv_index_value.ToFloat()) > svObject.Variable()){
+	svObject.State(uv_index_value);
+  if(svUVMaxZeit)
+	{
+  svObject = dom.GetObject(svUVMaxZeit);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svUVMaxZeit);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - UV-Index MaxZeit');
+	    svObject.ValueUnit("");
+	    svObject.State(WLDateTime);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(WLDateTime);
+	          }
+    }
+  }
+  }
+ }
+if (info == true) {WriteLine("Ende UV-Index");} 
+}	
+
+!Regen
+integer rain_size_position = wll_json.Find("rain_size");
+integer rain_size_value = wll_json.Substr((rain_size_position+11), 1).ToInteger();
+if (rain_size_value==1) {real rain_const = 0.0254;};
+if (rain_size_value==2) {real rain_const = 0.2;};
+if (rain_size_value==3) {real rain_const = 0.1;};
+if (rain_size_value==4) {real rain_const = 0.00254;};
+
+if(svWLRegen60min)
+{
+	svObject = dom.GetObject(svWLRegen60min);
+integer rainfall_last_60_min_position = wll_json.Find("rainfall_last_60_min");
+real rainfall_last_60_min_value = wll_json.Substr((rainfall_last_60_min_position+22), 5).ToInteger();
+real rain_rate_last_60_min = (rain_const *  rainfall_last_60_min_value).ToString(1);
+if (infow == true) {WriteLine("Regen letzte 60min: " # rain_rate_last_60_min);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWLRegen60min);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Regen letzte 60min");
+	    svObject.ValueUnit("mm");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(65000);
+	    svObject.State(rain_rate_last_60_min);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+    integer regenlast =  dom.GetObject(svWLRegen60min).State(); 
+    svObject.State(rain_rate_last_60_min);
+	}
+ !if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svWLRegen60min#';'#rain_rate_last_60_min);}
+ if (info == true) {WriteLine("Ende Regen letzte 60min");}
+}
+
+if(svWLRegen24h)
+{
+	svObject = dom.GetObject(svWLRegen24h);
+integer rainfall_last_24_hr_position = wll_json.Find("rainfall_last_24_hr");
+real rainfall_last_24_hr_value = wll_json.Substr((rainfall_last_24_hr_position+21), 5).ToInteger();
+real rainfall_last_24_hr = (rain_const * rainfall_last_24_hr_value).ToString(1);
+if (infow == true) {WriteLine("Regen letzte 24h: " # rainfall_last_24_hr);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWLRegen24h);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Regen letzte 24h");
+	    svObject.ValueUnit("mm");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(65000);
+	    svObject.State(rainfall_last_24_hr);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(rainfall_last_24_hr);
+	}
+ if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svWLRegen24h#';'#rainfall_last_24_hr);}
+ if (info == true) {WriteLine("Ende Regen letzte 24h");}
+}
+
+
+if ((svWLRegenAussen))
+{
+	svObject = dom.GetObject(svWLRegenAussen);
+
+string test = wll_json.StrValueByIndex(",", 28);    !"rainfall_last_15_min"
+real rainfall_value = ((test.Substr(23, 6).ToFloat() * rain_const)).ToFloat().ToString(1);
+
+!integer position = wll_json.Find("rainfall_last_15_min");
+!real rainfall_value = wll_json.Substr((position+22), 5).ToInteger();
+!real rainfall_value = (rain_const *  rainfall_value).ToString(1);
+  
+if (rainfall_value.ToFloat() > 0) {regen = 1;}
+if (infow == true) {WriteLine("Regnet: " # regen);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWLRegenAussen);   
+	    svObject.ValueType(ivtBinary);
+	    svObject.ValueSubType(istBool);
+	    svObject.DPInfo("Live - regnet");
+	    svObject.ValueUnit("");
+	    svObject.ValueName0("Nein");
+	    svObject.ValueName1("Ja");    
+	    svObject.State(regen);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(regen);
+	}
+ if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svWLRegenAussen#';'#regen);}
+ if (info == true) {WriteLine("Ende Regnet");}
+}
+
+if(svWLRegenRate)
+{
+	svObject = dom.GetObject(svWLRegenRate);
+	integer rain_rate_last_position = wll_json.Find("rain_rate_last");
+	real rain_rate_last_value = wll_json.Substr((rain_rate_last_position+16), 5).ToInteger();
+	real rain_rate_last_value = (rain_const *  rain_rate_last_value).ToString(1);
+  if (infow == true) {WriteLine("rain_rate_last_value: " # rain_rate_last_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWLRegenRate);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - letzte Regenrate");
+	    svObject.ValueUnit("mm/h");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(65000);
+	    svObject.State(rain_rate_last_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(rain_rate_last_value);
+	}
+ if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svWLRegenRate#';'#rain_rate_last_value);}
+ if (info == true) {WriteLine("Ende letzte Regenrate");}
+}
+
+
+
+if(svWLRegenTag)
+{
+	svObject = dom.GetObject(svWLRegenTag);
+string test = wll_json.StrValueByIndex(",", 38);    !"rainfall_daily"
+real rainfall_daily_value = ((test.Substr(17, 9).ToFloat() * rain_const)).ToFloat().ToString(1);
+if (infow == true) {WriteLine("rainfall_daily: " # rainfall_daily_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWLRegenTag);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Regen Tag");
+	    svObject.ValueUnit("mm");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(65000);
+	    svObject.State(rainfall_daily_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(rainfall_daily_value);
+	}
+ if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svWLRegenTag#';'#rainfall_daily_value);}
+ if (info == true) {WriteLine("Ende Regen Tag");}
+}
+
+if(svWLRegenMonat)
+{
+	svObject = dom.GetObject(svWLRegenMonat);         
+	string test = wll_json.StrValueByIndex(",", 39); 	!rainfall_monthly
+	real rainfall_monthly_value = ((test.Substr(19, 9).ToFloat() * rain_const)).ToFloat().ToString(1);
+  if (infow == true) {WriteLine("rainfall_monthly: " # rainfall_monthly_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWLRegenMonat);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Regen Monat");
+	    svObject.ValueUnit("mm");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(65000);
+	    svObject.State(rainfall_monthly_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(rainfall_monthly_value);
+	}
+!if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svWLRegenMonat#';'#rainfall_monthly_value);}
+ if (info == true) {WriteLine("Ende Regen Monat");}
+}
+
+
+if(svWLRegenJahr)
+{
+	svObject = dom.GetObject(svWLRegenJahr);
+  string test = wll_json.StrValueByIndex(",", 40); !rainfall_year
+  real rainfall_year_value = ((test.Substr(16, 9).ToFloat() * rain_const)).ToFloat().ToString(1);
+  if (infow == true) {WriteLine("rainfall_year: " # rainfall_year_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWLRegenJahr);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Regen Jahr");
+	    svObject.ValueUnit("mm");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(65000);
+	    svObject.State(rainfall_year_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(rainfall_year_value);
+	}
+!if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svWLRegenJahr#';'#rainfall_year_value);}
+ if (info == true) {WriteLine("Ende Regen Jahr");}
+}
+
+!"rain_rate_hi":0
+!"rainfall_last_15_min":0
+!"rain_rate_hi_last_15_min":0
+!"rain_storm":123
+!"rain_storm_start_at":1601884620
+!"rain_storm_last":23
+!"rain_storm_last_start_at":1601269021
+!"rain_storm_last_end_at":1601424061}
+
+
+if(svWindSpeed_2min)
+{
+	svObject = dom.GetObject(svWindSpeed_2min);
+  integer wind_speed_avg_last_2_min_position = wll_json.Find("wind_speed_avg_last_2_min");
+  real wind_speed_avg_last_2_min_value = wll_json.Substr((wind_speed_avg_last_2_min_position+27), 4).ToFloat();
+  real wind_speed_avg_last_2_min_kmh = (1.60934 * wind_speed_avg_last_2_min_value).ToString(1);
+  if (infow == true) {WriteLine("wind_speed_avg_last_2_min_kmh: " # wind_speed_avg_last_2_min_kmh);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWindSpeed_2min);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Windgeschwindigkeit");
+	    svObject.ValueUnit("km/h");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(255);
+	    svObject.State(wind_speed_avg_last_2_min_kmh);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(wind_speed_avg_last_2_min_kmh);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svWindSpeed_2min#';'#wind_speed_avg_last_2_min_kmh);}
+ if (info == true) {WriteLine("Ende Windgeschwindigkeit");}
+}
+
+if(svWindDir_2min)
+{
+	svObject = dom.GetObject(svWindDir_2min);
+  integer wind_dir_scalar_avg_last_2_min_position = wll_json.Find("wind_dir_scalar_avg_last_2_min");
+  real wind_dir_scalar_avg_last_2_min_value = wll_json.Substr((wind_dir_scalar_avg_last_2_min_position+32), 3).ToInteger();
+  if (infow == true) {WriteLine("wind_dir_scalar_avg_last_2_min: " # wind_dir_scalar_avg_last_2_min_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWindDir_2min);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Windrichtung");
+	    svObject.ValueUnit("°");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(360);
+	    svObject.State(wind_dir_scalar_avg_last_2_min_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(wind_dir_scalar_avg_last_2_min_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svWindDir_2min#';'#wind_dir_scalar_avg_last_2_min_value);}
+ if (info == true) {WriteLine("Ende Windrichtung");}
+if (WRText)
+ {
+var id = wind_dir_scalar_avg_last_2_min_value;
+string WindDirTxt = " "; 
+if ((id>=11.25) && (id<33.75)) { WindDirTxt = "NNO"; }  
+elseif ((id>=33.75) && (id<56.25)) { WindDirTxt = "NO"; }  
+elseif ((id>=56.25) && (id<78.75)) { WindDirTxt = "NOO"; }  
+elseif ((id>=78.75) && (id<101.25)) { WindDirTxt = "O"; }  
+elseif ((id>=101.25) && (id<123.75)) { WindDirTxt = "OSO"; }  
+elseif ((id>=123.75) && (id<146.25)) { WindDirTxt = "SO"; }  
+elseif ((id>=146.25) && (id<168.75)) { WindDirTxt = "SOS"; }  
+elseif ((id>=168.75) && (id<191.25)) { WindDirTxt = "S"; }  
+elseif ((id>=191.25) && (id<213.75)) { WindDirTxt = "SSW"; }  
+elseif ((id>=213.75) && (id<236.25)) { WindDirTxt = "SW"; }  
+elseif ((id>=236.25) && (id<258.75)) { WindDirTxt = "SWW"; }  
+elseif ((id>=258.75) && (id<281.25)) { WindDirTxt = "W"; }  
+elseif ((id>=281.25) && (id<303.75)) { WindDirTxt = "WNW"; }  
+elseif ((id>=303.75) && (id<326.25)) { WindDirTxt = "NW"; }  
+elseif ((id>=326.25) && (id<348.75)) { WindDirTxt = "NWN"; }  
+elseif (((id>=0.0) && (id<11.25)) || (id>=348.75)) { WindDirTxt = "N"; }
+if (WRTextUndGrad) {string WindDirTxtx = WindDirTxt#" "#(wind_dir_scalar_avg_last_2_min_value.ToString(0)); }   
+else {string WindDirTxtx = WindDirTxt;}   
+
+     
+   if (infow == true) {WriteLine("wind_dir_scalar_avg_last_2_min: " # WindDirTxtx);}      
+	svObject = dom.GetObject(svWindDirT_2min);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWindDirT_2min);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - Windrichtung Text');
+	    svObject.ValueUnit(" ");
+	    svObject.State(WindDirTxtx);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(WindDirTxtx);
+	          }
+  
+ if (info == true) {WriteLine("Ende WindrichtungText");} 
+ }
+
+}
+
+
+if(svWindSpeedHi_2min)
+{
+	svObject = dom.GetObject(svWindSpeedHi_2min);
+integer wind_speed_hi_last_2_min_position = wll_json.Find("wind_speed_hi_last_2_min");
+real wind_speed_hi_last_2_min_value = wll_json.Substr((wind_speed_hi_last_2_min_position+26), 4).ToFloat();
+real wind_speed_hi_last_2_min_kmh = (1.60934 * wind_speed_hi_last_2_min_value).ToString(1); 
+if (infow == true) {WriteLine("wind_speed_hi_last_2_min_kmh: " # wind_speed_hi_last_2_min_kmh);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWindSpeedHi_2min);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Windboen");
+	    svObject.ValueUnit("km/h");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(255);
+	    svObject.State(wind_speed_hi_last_2_min_kmh);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(wind_speed_hi_last_2_min_kmh);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svWindSpeedHi_2min#';'#wind_speed_hi_last_2_min_kmh);}
+ if (info == true) {WriteLine("Ende Windboen");}
+}
+
+
+if(svWindDirHi_2min)
+{
+	svObject = dom.GetObject(svWindDirHi_2min);
+  integer wind_dir_at_hi_speed_last_2_min_position = wll_json.Find("wind_dir_at_hi_speed_last_2_min");
+  real wind_dir_at_hi_speed_last_2_min_value = wll_json.Substr((wind_dir_at_hi_speed_last_2_min_position+33), 3).ToInteger();
+  if (infow == true) {WriteLine("wind_dir_at_hi_speed_last_2_min: " # wind_dir_at_hi_speed_last_2_min_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWindDirHi_2min);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Windboenrichtung");
+	    svObject.ValueUnit("°");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(360);
+	    svObject.State(wind_dir_at_hi_speed_last_2_min_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(wind_dir_at_hi_speed_last_2_min_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svWindDirHi_2min#';'#wind_dir_at_hi_speed_last_2_min_value);}
+ if (info == true) {WriteLine("Ende Windboenrichtung");}
+if (WRText)
+ {
+var id = wind_dir_at_hi_speed_last_2_min_value;
+string WindDirTxt = " "; 
+if ((id>=11.25) && (id<33.75)) { WindDirTxt = "NNO"; }  
+elseif ((id>=33.75) && (id<56.25)) { WindDirTxt = "NO"; }  
+elseif ((id>=56.25) && (id<78.75)) { WindDirTxt = "NOO"; }  
+elseif ((id>=78.75) && (id<101.25)) { WindDirTxt = "O"; }  
+elseif ((id>=101.25) && (id<123.75)) { WindDirTxt = "OSO"; }  
+elseif ((id>=123.75) && (id<146.25)) { WindDirTxt = "SO"; }  
+elseif ((id>=146.25) && (id<168.75)) { WindDirTxt = "SOS"; }  
+elseif ((id>=168.75) && (id<191.25)) { WindDirTxt = "S"; }  
+elseif ((id>=191.25) && (id<213.75)) { WindDirTxt = "SSW"; }  
+elseif ((id>=213.75) && (id<236.25)) { WindDirTxt = "SW"; }  
+elseif ((id>=236.25) && (id<258.75)) { WindDirTxt = "SWW"; }  
+elseif ((id>=258.75) && (id<281.25)) { WindDirTxt = "W"; }  
+elseif ((id>=281.25) && (id<303.75)) { WindDirTxt = "WNW"; }  
+elseif ((id>=303.75) && (id<326.25)) { WindDirTxt = "NW"; }  
+elseif ((id>=326.25) && (id<348.75)) { WindDirTxt = "NWN"; }  
+elseif (((id>=0.0) && (id<11.25)) || (id>=348.75)) { WindDirTxt = "N"; }
+if (WRTextUndGrad) {string WindDirTxtx =WindDirTxt#" "#(wind_dir_at_hi_speed_last_2_min_value.ToString(0)); }   
+else {string WindDirTxtx = WindDirTxt;}   
+     
+if (infow == true) {WriteLine("wind_dir_at_hi_speed_last_2_min_value: " # WindDirTxtx);}   
+	svObject = dom.GetObject(svWindDirTHi_2min);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWindDirTHi_2min);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - Windboenrichtung Text');
+	    svObject.ValueUnit(" ");
+	    svObject.State(WindDirTxtx);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(WindDirTxtx);
+	          }
+    }
+ if (info == true) {WriteLine("Ende WindboenrichtungText");} 
+
+}
+
+
+
+if(svWindSpeed_10min)
+{
+	svObject = dom.GetObject(svWindSpeed_10min);
+  integer wind_speed_avg_last_10_min_position = wll_json.Find("wind_speed_avg_last_10_min");
+  real wind_speed_avg_last_10_min_value = wll_json.Substr((wind_speed_avg_last_10_min_position+28), 4).ToFloat();
+  real wind_speed_avg_last_10_min_kmh = (1.60934 * wind_speed_avg_last_10_min_value).ToString(1);
+  if (infow == true) {WriteLine("wind_speed_avg_last_10_min_kmh: " # wind_speed_avg_last_10_min_kmh);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWindSpeed_10min);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Windgeschwindigkeit 10min");
+	    svObject.ValueUnit("km/h");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(255);
+	    svObject.State(wind_speed_avg_last_10_min_kmh);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(wind_speed_avg_last_10_min_kmh);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svWindSpeed_10min#';'#wind_speed_avg_last_10_min_kmh);}
+ if (info == true) {WriteLine("Ende Windgeschwindigkeit 10min");}
+}
+
+
+if(svWindDir_10min)
+{
+	svObject = dom.GetObject(svWindDir_10min);
+  integer wind_dir_scalar_avg_last_10_min_position = wll_json.Find("wind_dir_scalar_avg_last_10_min");
+  real wind_dir_scalar_avg_last_10_min_value = wll_json.Substr((wind_dir_scalar_avg_last_10_min_position+33), 3).ToInteger();
+  if (infow == true) {WriteLine("wind_dir_scalar_avg_last_10_min: " # wind_dir_scalar_avg_last_10_min_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWindDir_10min);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Windrichtung 10min");
+	    svObject.ValueUnit("°");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(360);
+	    svObject.State(wind_dir_scalar_avg_last_10_min_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(wind_dir_scalar_avg_last_10_min_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svWindDir_10min#';'#wind_dir_scalar_avg_last_10_min_value);}
+ if (info == true) {WriteLine("Ende Windrichtung 10min");}
+
+if (WRText)
+ {
+string WindDirTxt = " ";
+var id = wind_dir_scalar_avg_last_10_min_value;
+if ((id>=11.25) && (id<33.75)) { WindDirTxt = "NNO"; }  
+elseif ((id>=33.75) && (id<56.25)) { WindDirTxt = "NO"; }  
+elseif ((id>=56.25) && (id<78.75)) { WindDirTxt = "NOO"; }  
+elseif ((id>=78.75) && (id<101.25)) { WindDirTxt = "O"; }  
+elseif ((id>=101.25) && (id<123.75)) { WindDirTxt = "OSO"; }  
+elseif ((id>=123.75) && (id<146.25)) { WindDirTxt = "SO"; }  
+elseif ((id>=146.25) && (id<168.75)) { WindDirTxt = "SOS"; }  
+elseif ((id>=168.75) && (id<191.25)) { WindDirTxt = "S"; }  
+elseif ((id>=191.25) && (id<213.75)) { WindDirTxt = "SSW"; }  
+elseif ((id>=213.75) && (id<236.25)) { WindDirTxt = "SW"; }  
+elseif ((id>=236.25) && (id<258.75)) { WindDirTxt = "SWW"; }  
+elseif ((id>=258.75) && (id<281.25)) { WindDirTxt = "W"; }  
+elseif ((id>=281.25) && (id<303.75)) { WindDirTxt = "WNW"; }  
+elseif ((id>=303.75) && (id<326.25)) { WindDirTxt = "NW"; }  
+elseif ((id>=326.25) && (id<348.75)) { WindDirTxt = "NWN"; }  
+elseif (((id>=0.0) && (id<11.25)) || (id>=348.75)) { WindDirTxt = "N"; }
+if (WRTextUndGrad) {string WindDirTxtx =WindDirTxt#" "#(wind_dir_scalar_avg_last_10_min_value.ToString(0));}   
+else {string WindDirTxtx = WindDirTxt;}   
+   
+      
+if (infow == true) {WriteLine("wind_dir_scalar_avg_last_10_min: " # WindDirTxtx);}
+	svObject = dom.GetObject(svWindDirT_10min);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWindDirT_10min);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - Windrichtung Text 10min');
+	    svObject.ValueUnit(" ");
+	    svObject.State(WindDirTxtx);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(WindDirTxtx);
+	          }
+ if (info == true) {WriteLine("Ende Windrichtung Text 10min");} 
+ }
+
+ }
+
+
+
+if(svWindDirHi_10min)
+{
+	svObject = dom.GetObject(svWindDirHi_10min);
+  integer wind_dir_at_hi_speed_last_10_min_position = wll_json.Find("wind_dir_at_hi_speed_last_10_min");
+  real wind_dir_at_hi_speed_last_10_min_value = wll_json.Substr((wind_dir_at_hi_speed_last_10_min_position+34), 3).ToInteger();
+  if (infow == true) {WriteLine("wind_dir_at_hi_speed_last_10_min: " # wind_dir_at_hi_speed_last_10_min_value);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWindDirHi_10min);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Windboenrichtung 10min");
+	    svObject.ValueUnit("°");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(360);
+	    svObject.State(wind_dir_at_hi_speed_last_10_min_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(wind_dir_at_hi_speed_last_10_min_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svWindDirHi_10min#';'#wind_dir_at_hi_speed_last_10_min_value);}
+ if (info == true) {WriteLine("Ende Windboenrichtung 10min");}
+
+if (WRText)
+ {
+   var id = wind_dir_at_hi_speed_last_10_min_value;
+  string WindDirTxt = " ";
+   if ((id>=11.25) && (id<33.75)) { WindDirTxt = "NNO"; }  
+elseif ((id>=33.75) && (id<56.25)) { WindDirTxt = "NO"; }  
+elseif ((id>=56.25) && (id<78.75)) { WindDirTxt = "NOO"; }  
+elseif ((id>=78.75) && (id<101.25)) { WindDirTxt = "O"; }  
+elseif ((id>=101.25) && (id<123.75)) { WindDirTxt = "OSO"; }  
+elseif ((id>=123.75) && (id<146.25)) { WindDirTxt = "SO"; }  
+elseif ((id>=146.25) && (id<168.75)) { WindDirTxt = "SOS"; }  
+elseif ((id>=168.75) && (id<191.25)) { WindDirTxt = "S"; }  
+elseif ((id>=191.25) && (id<213.75)) { WindDirTxt = "SSW"; }  
+elseif ((id>=213.75) && (id<236.25)) { WindDirTxt = "SW"; }  
+elseif ((id>=236.25) && (id<258.75)) { WindDirTxt = "SWW"; }  
+elseif ((id>=258.75) && (id<281.25)) { WindDirTxt = "W"; }  
+elseif ((id>=281.25) && (id<303.75)) { WindDirTxt = "WNW"; }  
+elseif ((id>=303.75) && (id<326.25)) { WindDirTxt = "NW"; }  
+elseif ((id>=326.25) && (id<348.75)) { WindDirTxt = "NWN"; }  
+elseif (((id>=0.0) && (id<11.25)) || (id>=348.75)) { WindDirTxt = "N"; }
+ 
+if (WRTextUndGrad) {string WindDirTxtx = WindDirTxt#" "#(wind_dir_at_hi_speed_last_10_min_value.ToString(0));}   
+else {string WindDirTxtx = WindDirTxt;}   
+   if (infow == true) {WriteLine("wind_dir_at_hi_speed_last_10_mi: " # WindDirTxtx);}
+	svObject = dom.GetObject(svWindDirTHi_10min);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWindDirTHi_10min);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - Windboenrichtung Text 10min');
+	    svObject.ValueUnit(" ");
+	    svObject.State(WindDirTxtx);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(WindDirTxtx);
+	          }
+    
+ if (info == true) {WriteLine("Ende Windboenrichtung Text 10min");} 
+ }
+}
+
+if(svWindSpeedHi_10min)
+{
+	svObject = dom.GetObject(svWindSpeedHi_10min);
+integer wind_speed_hi_last_10_min_position = wll_json.Find("wind_speed_hi_last_10_min");
+real wind_speed_hi_last_10_min_value = wll_json.Substr((wind_speed_hi_last_10_min_position+27), 4).ToFloat();
+real wind_speed_hi_last_10_min_kmh = (1.60934 * wind_speed_hi_last_10_min_value).ToString(1); 
+if (infow == true) {WriteLine("wind_speed_hi_last_10_min_kmh: " # wind_speed_hi_last_10_min_kmh);}
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWindSpeedHi_10min);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Windboen 10min");
+	    svObject.ValueUnit("km/h");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(255);
+	    svObject.State(wind_speed_hi_last_10_min_kmh);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(wind_speed_hi_last_10_min_kmh);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svWindSpeedHi_10min#';'#wind_speed_hi_last_10_min_kmh);}
+ if (info == true) {WriteLine("Ende Windboen 10min");}
+}
+
+
+
+if ((svWindSpeedHi_10min) && (svWindDirHi_10min) && (svWindSpeed_Max))
+{
+  svObject = dom.GetObject(svWindSpeed_Max);
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWindSpeed_Max);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Windboen max");
+	    svObject.ValueUnit("km/h");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(255);
+	    svObject.State(wind_speed_hi_last_10_min_kmh);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+    	} else {
+      if (tz < tzv) {svObject.State(svObject.ValueMin());
+                     if (svWindSpeed_MaxZeit) {dom.GetObject(svWindSpeed_MaxZeit).State("00:00:00");}           
+                    }
+      if ((wind_speed_hi_last_10_min_kmh.ToFloat()) > svObject.Variable()){
+	    svObject.State(wind_speed_hi_last_10_min_kmh);
+	
+      if(svWindSpeedDir_Max){
+        svObject = dom.GetObject(svWindSpeedDir_Max);
+        if (!svObject){   
+	      svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	      svObject = dom.CreateObject(OT_VARDP);
+	      svObjectlist.Add(svObject.ID());
+	      svObject.Name(svWindSpeedDir_Max);   
+	      svObject.ValueType(ivtFloat);
+	      svObject.ValueSubType(istGeneric);
+	      svObject.DPInfo("Live - WL Windboen max Richtung");
+	      svObject.ValueUnit("°");
+	      svObject.ValueMin(0);
+	      svObject.ValueMax(360);
+	      svObject.State(wind_dir_at_hi_speed_last_10_min_value);
+	      svObject.Internal(false);
+	      svObject.Visible(true);
+	      dom.RTUpdate(true);
+	      } else {svObject.State(wind_dir_at_hi_speed_last_10_min_value); } 
+
+if (WRText)
+ {
+   var id = wind_dir_at_hi_speed_last_10_min_value;
+string WindDirTxt = " ";
+if ((id>=11.25) && (id<33.75)) { WindDirTxt = "NNO"; }  
+elseif ((id>=33.75) && (id<56.25)) { WindDirTxt = "NO"; }  
+elseif ((id>=56.25) && (id<78.75)) { WindDirTxt = "NOO"; }  
+elseif ((id>=78.75) && (id<101.25)) { WindDirTxt = "O"; }  
+elseif ((id>=101.25) && (id<123.75)) { WindDirTxt = "OSO"; }  
+elseif ((id>=123.75) && (id<146.25)) { WindDirTxt = "SO"; }  
+elseif ((id>=146.25) && (id<168.75)) { WindDirTxt = "SOS"; }  
+elseif ((id>=168.75) && (id<191.25)) { WindDirTxt = "S"; }  
+elseif ((id>=191.25) && (id<213.75)) { WindDirTxt = "SSW"; }  
+elseif ((id>=213.75) && (id<236.25)) { WindDirTxt = "SW"; }  
+elseif ((id>=236.25) && (id<258.75)) { WindDirTxt = "SWW"; }  
+elseif ((id>=258.75) && (id<281.25)) { WindDirTxt = "W"; }  
+elseif ((id>=281.25) && (id<303.75)) { WindDirTxt = "WNW"; }  
+elseif ((id>=303.75) && (id<326.25)) { WindDirTxt = "NW"; }  
+elseif ((id>=326.25) && (id<348.75)) { WindDirTxt = "NWN"; }  
+elseif (((id>=0.0) && (id<11.25)) || (id>=348.75)) { WindDirTxt = "N"; }
+if (WRTextUndGrad) {string WindDirTxtx = WindDirTxt#" "#(wind_dir_at_hi_speed_last_10_min_value.ToString(0)); }   
+else {string WindDirTxtx = WindDirTxt;}   
+if (infow == true) {WriteLine("wind_dir_at_hi_speed_last_10_mi: " # WindDirTxtx);}
+	svObject = dom.GetObject(svWindSpeedDirT_Max);
+	if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svWindSpeedDirT_Max);   
+	    svObject.ValueType(ivtString);
+	    svObject.ValueSubType(istChar8859);
+	    svObject.DPInfo('Live - WL Windboen max Richtung Text');
+	    svObject.ValueUnit(" ");
+	    svObject.State(WindDirTxtx);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	          } else 
+	          {
+	          svObject.State(WindDirTxtx);
+	          }
+    }
+ if (info == true) {WriteLine("Ende Windboen max Richtung Text");} 
+ }
+
+      
+      if(svWindSpeed_MaxZeit){
+        svObject = dom.GetObject(svWindSpeed_MaxZeit);
+        if (!svObject){   
+	      svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	      svObject = dom.CreateObject(OT_VARDP);
+	      svObjectlist.Add(svObject.ID());
+	      svObject.Name(svWindSpeed_MaxZeit);   
+	      svObject.ValueType(ivtString);
+	      svObject.ValueSubType(istChar8859);
+	      svObject.DPInfo('Live - Windboen MaxZeit');
+	      svObject.ValueUnit("");
+	      svObject.State(WLDateTime);
+	      svObject.Internal(false);
+	      svObject.Visible(true);
+	      dom.RTUpdate(true);
+	      } else  {svObject.State(WLDateTime);}
+      }
+	}
+}
+ if (info == true) {WriteLine("Ende Windboen max");}  
+}
+
+
+!"wind_speed_last":3.00
+!"wind_dir_last":18
+!"wind_speed_avg_last_1_min":2.25
+!"wind_dir_scalar_avg_last_1_min":4
+
+!var BodenTemperatur1=false;
+if(svBodenTemperatur1)
+{
+
+if (BodenUndBlatt == true)
+{
+string test = wll_json.StrValueByIndex(",", BodenTemp1Index);
+real xxx = (test.Substr(9, 6)).ToFloat();
+}
+else
+{
+integer position = wll_json.Find("temp_1");
+real xxx = wll_json.Substr((position+8), 5).ToFloat();
+}
+real temp_1_value =  (0.5555555555555556 *  (xxx - 32)).ToString(1);
+if (infow == true) {WriteLine("Bodentemperatur 1: " # temp_1_value);}  
+	svObject = dom.GetObject(svBodenTemperatur1);
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svBodenTemperatur1);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Bodentemperatur 1");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-40);
+	    svObject.ValueMax(70);
+	    svObject.State(temp_1_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(temp_1_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svBodenTemperatur1#';'#temp_1_value);}
+ if (info == true) {WriteLine("Ende Bodentemperatur 1");}
+}
+
+if(svBodenTemperatur2)
+{
+
+if (BodenUndBlatt == true)
+{
+string test = wll_json.StrValueByIndex(",", BodenTemp2Index);
+!string test = wll_json.StrValueByIndex(",", 147);
+real xxx = (test.Substr(9, 6)).ToFloat();
+}
+else
+{
+integer position = wll_json.Find("temp_2");
+real xxx = wll_json.Substr((position+8), 5).ToFloat();
+}
+real temp_2_value =  (0.5555555555555556 *  (xxx - 32)).ToString(1);
+if (infow == true) {WriteLine("Bodentemperatur 2: " # temp_2_value);}  
+	svObject = dom.GetObject(svBodenTemperatur2);
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svBodenTemperatur2);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Bodentemperatur 2");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-40);
+	    svObject.ValueMax(70);
+	    svObject.State(temp_2_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(temp_2_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svBodenTemperatur2#';'#temp_2_value);}
+ if (info == true) {WriteLine("Ende Bodentemperatur 2");}
+}
+
+if(svBodenTemperatur3)
+{
+
+if (BodenUndBlatt == true)
+{
+string test = wll_json.StrValueByIndex(",", BodenTemp3Index);
+!string test = wll_json.StrValueByIndex(",", 148);
+real xxx = (test.Substr(9, 6)).ToFloat();
+}
+else
+{
+integer position = wll_json.Find("temp_3");
+real xxx = wll_json.Substr((position+8), 5).ToFloat();
+}
+real temp_3_value =  (0.5555555555555556 *  (xxx - 32)).ToString(1);
+if (infow == true) {WriteLine("Bodentemperatur 3: " # temp_3_value);}  
+	svObject = dom.GetObject(svBodenTemperatur3);
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svBodenTemperatur3);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Bodentemperatur 3");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-40);
+	    svObject.ValueMax(70);
+	    svObject.State(temp_3_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(temp_3_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svBodenTemperatur3#';'#temp_3_value);}
+ if (info == true) {WriteLine("Ende Bodentemperatur 3");}
+}
+
+if(svBodenTemperatur4)
+{
+
+if (BodenUndBlatt == true)
+{
+string test = wll_json.StrValueByIndex(",", BodenTemp4Index);
+!string test = wll_json.StrValueByIndex(",", 149);
+real xxx = (test.Substr(9, 6)).ToFloat();
+}
+else
+{
+integer position = wll_json.Find("temp_4");
+real xxx = wll_json.Substr((position+8), 5).ToFloat();
+}
+real temp_4_value =  (0.5555555555555556 *  (xxx - 32)).ToString(1);
+if (infow == true) {WriteLine("Bodentemperatur 4: " # temp_4_value);}  
+	svObject = dom.GetObject(svBodenTemperatur4);
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svBodenTemperatur4);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Bodentemperatur 4");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-40);
+	    svObject.ValueMax(70);
+	    svObject.State(temp_4_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(temp_4_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svBodenTemperatur4#';'#temp_4_value);}
+ if (info == true) {WriteLine("Ende Bodentemperatur 4");}
+}
+
+
+
+
+!var svBodenFeuchte1=false;
+if (svBodenFeuchte1)
+{
+
+if (BodenUndBlatt == true)
+{
+string test = wll_json.StrValueByIndex(",", BodenFeuchte1Index); 
+real moist_soil_1_value = test.Substr(15, 6).ToString(1);
+}
+else
+{	
+  integer position = wll_json.Find("moist_soil_1");
+  real moist_soil_1_value = wll_json.Substr((position+14), 4).ToFloat();
+} 
+  if (infow == true) {WriteLine("Bodenfeuchte 1: " # moist_soil_1_value);}
+	svObject = dom.GetObject(svBodenFeuchte1);
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svBodenFeuchte1);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Bodenfeuchte 1");
+	    svObject.ValueUnit("cb");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(200);
+	    svObject.State(moist_soil_1_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(moist_soil_1_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svBodenFeuchte1#';'#moist_soil_1_value);}
+ if (info == true) {WriteLine("Ende Bodenfeuchte 1");}
+}
+
+!var svBodenFeuchte2=false;
+if (svBodenFeuchte2)
+{
+
+if (BodenUndBlatt == true)
+{
+string test = wll_json.StrValueByIndex(",", BodenFeuchte2Index); 
+!string test = wll_json.StrValueByIndex(",", 151);
+real moist_soil_2_value = test.Substr(15, 6).ToString(1);
+}
+else
+{	
+  integer position = wll_json.Find("moist_soil_2");
+  real moist_soil_2_value = wll_json.Substr((position+14), 4).ToFloat();
+} 
+  if (infow == true) {WriteLine("Bodenfeuchte 2: " # moist_soil_2_value);}
+	svObject = dom.GetObject(svBodenFeuchte2);
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svBodenFeuchte2);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Bodenfeuchte 2");
+	    svObject.ValueUnit("cb");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(200);
+	    svObject.State(moist_soil_2_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(moist_soil_2_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svBodenFeuchte2#';'#moist_soil_2_value);}
+ if (info == true) {WriteLine("Ende Bodenfeuchte 2");}
+}
+
+!var svBodenFeuchte3=false;
+if (svBodenFeuchte3)
+{
+
+if (BodenUndBlatt == true)
+{
+string test = wll_json.StrValueByIndex(",", BodenFeuchte3Index); 
+!string test = wll_json.StrValueByIndex(",", 152);
+real moist_soil_3_value = test.Substr(15, 6).ToString(1);
+}
+else
+{	
+  integer position = wll_json.Find("moist_soil_3");
+  real moist_soil_3_value = wll_json.Substr((position+14), 4).ToFloat();
+} 
+  if (infow == true) {WriteLine("Bodenfeuchte 3: " # moist_soil_3_value);}
+	svObject = dom.GetObject(svBodenFeuchte3);
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svBodenFeuchte3);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Bodenfeuchte 3");
+	    svObject.ValueUnit("cb");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(200);
+	    svObject.State(moist_soil_3_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(moist_soil_3_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svBodenFeuchte3#';'#moist_soil_3_value);}
+ if (info == true) {WriteLine("Ende Bodenfeuchte 3");}
+}
+
+!var svBodenFeuchte4=false;
+if (svBodenFeuchte4)
+{
+
+if (BodenUndBlatt == true)
+{
+string test = wll_json.StrValueByIndex(",", BodenFeuchte4Index); 
+!string test = wll_json.StrValueByIndex(",", 153);
+real moist_soil_4_value = test.Substr(15, 6).ToString(1);
+}
+else
+{	
+  integer position = wll_json.Find("moist_soil_4");
+  real moist_soil_4_value = wll_json.Substr((position+14), 4).ToFloat();
+} 
+  if (infow == true) {WriteLine("Bodenfeuchte 4: " # moist_soil_4_value);}
+	svObject = dom.GetObject(svBodenFeuchte4);
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svBodenFeuchte4);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Bodenfeuchte 4");
+	    svObject.ValueUnit("cb");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(200);
+	    svObject.State(moist_soil_4_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(moist_soil_4_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svBodenFeuchte4#';'#moist_soil_4_value);}
+ if (info == true) {WriteLine("Ende Bodenfeuchte 4");}
+}
+
+if(svBlattTemp1)
+{
+if (BodenUndBlatt == true)
+{
+string test = wll_json.StrValueByIndex(",", BlattTemp1Index);
+!string test = wll_json.StrValueByIndex(",", 131);
+real xxx = (test.Substr(9, 6)).ToFloat();
+}
+else
+{
+integer position = wll_json.Find("temp_1");
+real xxx = wll_json.Substr((position+8), 5).ToFloat();
+}
+real temp_1_value =  (0.5555555555555556 *  (xxx - 32)).ToString(1);
+if (infow == true) {WriteLine("Blatttemperatur 1: " # temp_1_value);}  
+
+svObject = dom.GetObject(svBlattTemp1);
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svBlattTemp1);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric)
+	    svObject.DPInfo("Live - Blatttemperatur 1");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-40);
+	    svObject.ValueMax(70);
+	    svObject.State(temp_1_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(temp_1_value);
+	}
+
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svBlattTemp1#';'#temp_1_value);}
+ if (info == true) {WriteLine("Ende Blatttemperatur 1");}
+}
+
+if(svBlattTemp2)
+{
+if (BodenUndBlatt == true)
+{
+string test = wll_json.StrValueByIndex(",", BlattTemp2Index);
+!string test = wll_json.StrValueByIndex(",", 132);
+real xxx = (test.Substr(9, 6)).ToFloat();
+}
+else
+{
+integer position = wll_json.Find("temp_2");
+real xxx = wll_json.Substr((position+8), 5).ToFloat();
+}
+real temp_2_value =  (0.5555555555555556 *  (xxx - 32)).ToString(1);
+if (infow == true) {WriteLine("Blatttemperatur 2: " # temp_2_value);}  
+	svObject = dom.GetObject(svBlattTemp2);
+
+svObject = dom.GetObject(svBlattTemp2);
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svBlattTemp2);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric)
+	    svObject.DPInfo("Live - Blatttemperatur 2");
+	    svObject.ValueUnit("°C");
+	    svObject.ValueMin(-40);
+	    svObject.ValueMax(70);
+	    svObject.State(temp_2_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(temp_2_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svBlattTemp2#';'#temp_2_value);}
+
+ if (info == true) {WriteLine("Ende Blatttemperatur 2");}
+}
+
+!var svBlattFeuchte1=false;
+if(svBlattFeuchte1)
+{
+
+if (BodenUndBlatt == true)
+{
+string test = wll_json.StrValueByIndex(",", BlattFeuchte1Index);
+real wet_leaf_1_value = (test.Substr(13, 6)).ToFloat();
+}
+else
+{
+  integer position = wll_json.Find("wet_leaf_1");
+  real wet_leaf_1_value = wll_json.Substr((position+12), 4).ToFloat();
+}
+  if (infow == true) {WriteLine("Blattfeuchte 1: " # wet_leaf_1_value);}
+	svObject = dom.GetObject(svBlattFeuchte1);
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svBlattFeuchte1);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Blattfeuchte 1");
+	    svObject.ValueUnit("lf");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(15);
+	    svObject.State(wet_leaf_1_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(wet_leaf_1_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svBlattFeuchte1#';'#wet_leaf_1_value);}
+ if (info == true) {WriteLine("Ende Blattfeuchte 1");}
+}
+
+!var svBlattFeuchte2=false;
+if(svBlattFeuchte2)
+{
+
+if (BodenUndBlatt == true)
+{
+!string test = wll_json.StrValueByIndex(",", BlattFeuchte2Index);
+string test = wll_json.StrValueByIndex(",", 140);
+real wet_leaf_2_value = (test.Substr(13, 6)).ToFloat();
+}
+else
+{
+  integer position = wll_json.Find("wet_leaf_2");
+  real wet_leaf_2_value = wll_json.Substr((position+12), 4).ToFloat();
+}
+  if (infow == true) {WriteLine("Blattfeuchte 2: " # wet_leaf_2_value);}
+	svObject = dom.GetObject(svBlattFeuchte2);
+  if (!svObject){   
+	    svObjectlist = dom.GetObject(ID_SYSTEM_VARIABLES);
+	    svObject = dom.CreateObject(OT_VARDP);
+	    svObjectlist.Add(svObject.ID());
+	    svObject.Name(svBlattFeuchte2);   
+	    svObject.ValueType(ivtFloat);
+	    svObject.ValueSubType(istGeneric);
+	    svObject.DPInfo("Live - Blattfeuchte 2");
+	    svObject.ValueUnit("lf");
+	    svObject.ValueMin(0);
+	    svObject.ValueMax(15);
+	    svObject.State(wet_leaf_2_value);
+	    svObject.Internal(false);
+	    svObject.Visible(true);
+	    dom.RTUpdate(true);
+	} else {
+		svObject.State(wet_leaf_2_value);
+	}
+	if((useLOGIT)){dom.GetObject(cuxCMDName#'.LOGIT').State(svBlattFeuchte2#';'#wet_leaf_2_value);}
+ if (info == true) {WriteLine("Ende Blattfeuchte 2");}
+}
+
+if (info == true) {WriteLine("Ende");} 

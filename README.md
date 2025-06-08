@@ -103,4 +103,25 @@ und schon sendet die Station die Daten an die CCU.
 
 Homematic Script Dateien zum Empfangen von Wetterdaten von einer Weatherlink Live
 bzw. Davis Airlink
+
+Die Programm-Dateien "Weatherlink Live.hms" und "Airlink Daten.hms"
+erzeugen die entsprechenden Systemvariablen automatisch, wenn nicht vorhanden!
+
+In der url Variablen muss die entsprechende IP-Adresse der Live bzw. Airlink angepasst werden
+```
+var url = "http://192.168.0.121/v1/current_conditions";
+```
+### Notwendig ist dazu das Addon cuxd
+
+Datei Davis_Daten_abholen.hms:
+```
+!var programObj = dom.GetObject("Weatherlink Live");
+!programObj.ProgramExecute();
+dom.GetObject("Weatherlink Live").ProgramExecute();
+
+!var programObj = dom.GetObject("Airlink Daten");
+!programObj.ProgramExecute();
+dom.GetObject("Airlink Daten").ProgramExecute();
+```
+
 ![HA_Davis_Daten_abholen](https://github.com/user-attachments/assets/a15b9346-7046-4532-927d-abd00cf59631)

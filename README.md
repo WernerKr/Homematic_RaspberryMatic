@@ -18,7 +18,7 @@ Die Nutzung der Software ist auf eigene Gefahr!
 Die Langzeitarchive werden recht groß, diese sind auf ein geeignetes Medium zu kopieren und auf
 der CCU regelmäßig zu löschen.
 
-"Installations" Anleitung
+### "Installations" Anleitung
 
 Unter /usr/local/etc/config/addons/www das Verzeichnis myAddons erstellen.
 
@@ -28,6 +28,15 @@ Hier kann eine Datei mit dem Namen "myWeather.ini" angelegt werden.
 Ist diese vorhanden und leer wird im lokalen Verzeichnis die CSV-Tabelle gespeichert.
 !! Streß für die SD-Karte !!
 Um das zu umgehen kann in der ini-Datei der Pfad angegeben werden (nur der Pfad!) wo die Datei gespeichert werden soll, zB. /tmp/
+
+Inhalt dieser Datei um diese Dateien auf Home Assitant unter /backup/myWeather abzulegen:
+```
+/backup/myWeather/
+```
+Um die Daten bei Homematic CCU oder RaspberryMatic auf USB-Stick abzulegen:
+```
+/media/usb1/myWeather/
+```
 
 Dateien auf Home Assistant RaspberryMatic CCU
 

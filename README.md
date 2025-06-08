@@ -29,9 +29,18 @@ Ist diese vorhanden und leer wird im lokalen Verzeichnis die CSV-Tabelle gespeic
 !! Streß für die SD-Karte !!
 Um das zu umgehen kann in der ini-Datei der Pfad angegeben werden (nur der Pfad!) wo die Datei gespeichert werden soll, zB. /tmp/
 
+Dateien auf Home Assistant RaspberryMatic CCU
+
+![Ha_myAddons](https://github.com/user-attachments/assets/b45cb798-1811-4b34-b52b-0f3ba7208caa)
+
 
 In dem Verzeichnis /usr/local/etc/config/rc.d die Datei myAddons speichern. 
 Diese startet nach einem Reboot automatisch den Server.
+
+Meine Dateien auf Home Assistant RaspberryMatic CCU in diesem Verzeichnis
+
+![HA_config](https://github.com/user-attachments/assets/db29605b-cc3e-4905-9929-47b37220da7c)
+
 
 
 Um ohne Reboot zu starten über die Konsole folgendes eingeben:
@@ -46,10 +55,10 @@ tclsh myWeather3.tcl &
 exit
 ```
 Unterschied myWeather.tcl und myWeather3.tcl:
- - myWeather.tcl ist die Original-Version aus dem Jahr 2021
+ - myWeather.tcl ist die Original-Version aus dem Jahr 2021 ergänzt von mir um automatische Erzeugung von Sysvars
  - myWeather3.tcl wurde von mir erweitert um die aktuellen Sensoren der Ecowitt Konsolen/Gateways
    man kann in dieser Datei einstellen, welche Sensoren ausgewertet werden sollen
-   und wer mein updateweather.php Script nutzt, kann zusätzlciche Werte wie z.B. Co2Temp und andere an die CCU senden!
+   und wer mein updateweather.php Script nutzt, kann zusätzliche Werte wie z.B. Co2Temp und andere an die CCU senden!
 
 Werte aktivieren/nicht aktivieren z.B.:
 ```

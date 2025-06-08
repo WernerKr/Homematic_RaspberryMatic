@@ -35,34 +35,43 @@ Diese startet nach einem Reboot automatisch den Server.
 
 
 Um ohne Reboot zu starten über die Konsole folgendes eingeben:
-
+```
 cd /www/addons/myAddons/
 tclsh myWeather.tcl &
 exit
-
+```
+```
 cd /www/addons/myAddons/
 tclsh myWeather3.tcl &
 exit
-
+```
 Unterschied myWeather.tcl und myWeather3.tcl:
-myWeather.tcl ist die Original-Version aus dem Jahr 2021
-myWeather3.tcl wurde von mir erweitert um die aktuellen Sensoren der Ecowitt Konsolen/Gateways
-man kann in dieser Datei einstellen, welche Sensoren ausgewertet werden sollen
-z.B.:
-set ::_W_Co2_Temp 1	dieser Sensor wird ausgewertet und eine entsprechende Systemvariable angelegt wenn nicht vorhanden.
-		die Systemvariable wird auch angelegt, wenn es dafür keine Werte gibt!
-set ::_W_Co2in 0	dieser Sensor wird nicht ausgewertet und auch keine Systemvariable dazu angelegt.
+ - myWeather.tcl ist die Original-Version aus dem Jahr 2021
+ - myWeather3.tcl wurde von mir erweitert um die aktuellen Sensoren der Ecowitt Konsolen/Gateways
+   man kann in dieser Datei einstellen, welche Sensoren ausgewertet werden sollen
+   und wer mein updateweather.php Script nutzt, kann zusätzlciche Werte wie z.B. Co2Temp und andere an die CCU senden!
 
+Werte aktivieren/nicht aktivieren z.B.:
+```
+set ::_W_Co2_Temp 1	dieser Sensor wird ausgewertet und eine entsprechende Systemvariable angelegt wenn nicht vorhanden.
+		        die Systemvariable wird auch angelegt, wenn es dafür keine Werte gibt!
+set ::_W_Co2in 0	dieser Sensor wird nicht ausgewertet und auch keine Systemvariable dazu angelegt.
+```
 Es ist unbedingt in der Firewall der Homematic der Port:2068 freizugeben ;)
 Der Server lauscht nun auf dem Port 2068.
--> socket -server Server 2110
-
+```
+-> socket -server Server 2068
+```
 Wenn RaspberryMatic CCU auf Home Assistant läuft, muss ein Port extra freigegeben werden,
 der Port 2068 kann hier nicht verwendet werden!
 Port 2110/tcp funktioniert!
-und dieser muss dann in der Datei myWeather.tcl bzw. myWeather3.tcl entsprechend geändert werden:
-socket -server Server 2110
+![Home Assistant RaspberryMatic CCU Konfiguration](https://github.com/user-attachments/assets/68756616-7f91-49f8-8bd5-c44e1acd91d5)
 
+und dieser muss dann in der Datei myWeather.tcl bzw. myWeather3.tcl entsprechend geändert werden:
+
+```
+socket -server Server 2110
+```
 Die Wetterstation ist mittels der Config App WS View unter
 Menu -> Device List -> Station auswählen,
 dann kann man die einzelnen Wettservices auswählen.
@@ -70,17 +79,18 @@ dann kann man die einzelnen Wettservices auswählen.
 Solange NEXT drücken bis Customized -Y Enable,
 Protocol Wunderground, Server IP Ip Adresse der CCU,
 Station ID irgendwas, Station Key auch irgendwas,
+```
 Port:2068, Upload Interval 60 -> Save
 bzw.
 Port:2110, Upload Interval 60 -> Save
-
+```
 und schon sendet die Station die Daten an die CCU.
 
 
 
 
 
-### Davis_WLL_Airlink
+## Davis_WLL_Airlink
 
 Homematic Script Dateien zum Empfangen von Wetterdaten von einer Weatherlink Live
 bzw. Davis Airlink

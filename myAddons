@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# speichern unter /usr/local/etc/config/rc.d
+#
+WWW_DIR=/etc/config/addons/www/myAddons
+CONFIG_URL=/addons/myAddons/
+
+case "$1" in
+""|start)
+    cd ../www/addons/myAddons
+        sh autostart & > autostart.txt &
+
+  ;;
+info)
+  echo "Info: <b>myAddons</b><br>diverse Funktionen zB. Daten von Wetterstation in HM integrieren<br>Feiertagsberechnung..."
+  
+  ;;
+uninstall)
+  
+  ;;
+esac
